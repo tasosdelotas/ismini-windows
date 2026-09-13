@@ -29,7 +29,7 @@ A stripped-down local agent runtime. No gateway, no plugins, no cloud, no depend
 
 ## Windows Installer
 
-Download the latest installer from [releases]
+Download the latest installer from [releases](https://github.com/tasosdelotas/ismini-windows/releases).
 
 The installer:
 - Downloads Node.js directly (no Windows installer prompt)
