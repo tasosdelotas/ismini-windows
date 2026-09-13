@@ -1,0 +1,7 @@
+Output/
+Thumbs.db
+*.log
+.DS_Store
+gh-*.js
+gh-out.txt
+test-out.txt
