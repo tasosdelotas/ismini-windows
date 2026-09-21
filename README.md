@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="2.jpeg" alt="ismini in action" width="100%" style="max-width:480px; border-radius:16px;">
+  <img src="2.jpeg" alt="ismini in action" width="480">
 </p>
 
 # ismini — your personal AI agent, 100% on your own PC
