@@ -2,67 +2,83 @@
   <img src="web/favicon-256.png" alt="ismini" width="96" height="96">
 </p>
 
-# ismini — Minimal Local Agent Runtime
+# ismini — your personal AI agent, 100% on your own PC
 
-A stripped-down local agent runtime. No gateway, no plugins, no cloud, no dependencies. Just a local agent with a minimal web UI that talks to LM Studio and runs tools on your machine.
+ismini is a small, friendly AI assistant that runs entirely on your computer. It chats with you in your browser, and can read and write files, run commands, and search the web — all powered by a local AI model (LM Studio). No cloud, no accounts, no sign-ups. Your data never leaves your machine.
 
-## What it does
+## What it can do
 
-- Sends your messages to LM Studio (local LLM server) — **auto-detects whichever model is loaded** every turn, so you can hot-swap models mid-session and the limits adapt
-- Automatically uses tools: read / write / edit / delete files, exec shell commands, web search + fetch
-- One live session per run — history lives in memory and dies with the process
-- Context window enforcement (default 64k, capped to the loaded model's real context) — approximate via char/token ratios
-- **Safe truncation**: the kept window is always anchored at a user message, so long sessions never send a malformed conversation (prevents chat-template 500s on some LLMs)
-- Streaming output — typewriter effect as text arrives
-- **Pause & Redirect** — mid-loop, hit Pause to interrupt the agent, type a suggestion, and it picks up from where it left off with your correction
-- Minimal local web UI — a clean browser chat at `http://127.0.0.1:8787`: no login, no accounts, binds to localhost only
-- Connection health check on every request (handles LM Studio restarts mid-session)
-- Loop guards: repetition stripping, empty-output hard-stop, per-response and per-run timeouts
-- Model-agnostic — works with whatever model is loaded in LM Studio (auto-detected every turn)
-- Web tools fully local — DuckDuckGo HTML search + direct fetch + local HTML→text parsing (no third-party readers)
+- 💬 **Chat with an AI** in your browser — the AI is a model you run locally in LM Studio
+- 📄 **Read, write, edit, and delete files** on your PC
+- ⚙️ **Run shell commands** (run as admin for elevated privileges)
+- 🔎 **Search the web** and read web pages
+- ⏸️ **Pause & redirect** — stop it mid-task and tell it what to do instead
+- 🖱️ **File & folder buttons** — click 📄 or 📁 and pick a file from your desktop; its path goes into the chat
+- 🎙️ **Dictation** — click the mic and speak your message; speech-to-text via Web Speech API
+- 🔊 **Text-to-Speech (TTS)** — ismini reads its replies aloud; pick your preferred voice
+- 🎧 **Live Chat** — continuous voice conversation: speak, ismini listens, responds with voice, and immediately listens again
+- 🧠 **Memory** — ismini remembers facts across sessions (persistent memory file)
+- 📋 **Sessions** — switch between your current and up to 3 archived conversations
+- 🎨 **Three themes** — **Papyrus** (an ancient scroll), **Stars** (a twinkling night sky), or **Marble** (black marble) — pick one in the header and ismini remembers your choice
 
-## Requirements
+## What you need
 
-- **Windows 10/11**
-- **Node.js 18+** (included in Windows installer)
-- **LM Studio** running with a model loaded
+- **Windows 10/11** (x64)
+- **Node.js 18 or newer** — included in the installer
+- **LM Studio** with a model loaded — download from [lmstudio.ai](https://lmstudio.ai/)
+- A **modern browser** (Chrome/Edge recommended for dictation, TTS, and Live Chat)
 
-## Windows Installer
+## Setup (1 minute)
 
-Download the latest installer from [releases](https://github.com/tasosdelotas/ismini-windows/releases).
+1. Download **ismini-installer-3.0.0.exe** from the [Releases page](https://github.com/tasosdelotas/ismini-windows/releases)
+2. Run it and click through the installer
+3. An **ismini** icon appears on your desktop. Click it to start.
 
-The installer:
-- Downloads Node.js directly (no Windows installer prompt)
-- Creates desktop and Start Menu shortcuts
-- Sets up automatic uninstaller
+## Using it
 
-**Uninstall**: Use Windows Settings → Apps, or run `uninstall.bat` in the app folder. Removes everything including config files.
+1. Make sure **LM Studio is open** with a model loaded (any model works — ismini detects it automatically)
+2. Click the **ismini desktop icon**
+3. Your browser opens at `http://127.0.0.1:8787` — just start chatting
 
-## Memory
+**Useful buttons:**
 
-**No conversation persistence.** The conversation lives only in memory — **New chat** clears it, and stopping the server ends it. The model does not remember previous runs.
+| Button | What it does |
+|--------|--------------|
+| **New chat** | Archive current session and start fresh |
+| **Sessions** | Dropdown to switch between current + 3 archived sessions |
+| **📄 / 📁** | Pick a file or folder — its path is inserted into the chat |
+| **Pause** | Stop the agent mid-task and redirect it |
+| **🎙 Mic** | Toggle dictation — speak your message instead of typing |
+| **TTS / Muted** | Toggle text-to-speech — ismini reads replies aloud |
+| **Voice select** | Choose which voice ismini speaks with |
+| **Live** | Toggle continuous voice conversation mode |
+| **Papyrus / Stars / Marble** | Switch the look — ancient scroll, night sky, or black marble |
 
-## Controls
+### Dictation (Speech-to-Text)
 
-| Control | What it does |
-|---------|--------------|
-| **New chat** button | Clear the conversation (start fresh) |
-| **Pause** button | Interrupt the agent mid-loop — type a suggestion to redirect it |
-| `Ctrl+C` on the server | Stop ismini |
+Click the **🎙** mic button in the input area. Your microphone activates (red = off, green blinking = listening). Speak your message and it appears as text in the input box. Click the mic again to stop. Works with Chrome and Edge.
 
-That's it — the web UI is intentionally minimal.
+### Text-to-Speech (TTS)
 
-## Tools
+Click the **TTS** button to enable. ismini will read its replies aloud using your browser's speech synthesis. Use the voice dropdown to pick a different voice. Click **Muted** to turn it off.
 
-| Tool | Description |
-|------|-------------|
-| `read` | Read file contents (`path`) |
-| `write` | Write/overwrite a file (`path`, `content`) |
-| `edit` | Find-and-replace in a file (`path`, `oldText`, `newText`) — replaces ALL occurrences (warns if >5 matches) |
-| `delete` | Delete a file (`path`) |
-| `exec` | Run shell commands (`command`) — runs as the current user. Dangerous commands (format, diskpart, shutdown, etc.) are blocked |
-| `web_search` | Search DuckDuckGo (`query`) — top 3 results fetched locally (in parallel) with extracted text |
-| `web_fetch` | Fetch and read a URL (`url`) — local HTML→text parsing; JS shells and anti-bot walls are reported honestly instead of silently failing |
+### Live Chat
+
+Click the **Live** button to start a continuous voice conversation. ismini will:
+1. Listen to you (mic opens)
+2. Think and respond
+3. Speak the reply aloud (TTS)
+4. Immediately listen again
+
+The Live button shows: **red** (off), **green blinking** (active), **purple** (speaking). Click again to stop.
+
+### Memory
+
+ismini has a persistent memory file (`memory.json`) that stores facts and context across sessions. Ask it to remember something and it will save it. It will recall relevant memories in future conversations.
+
+### Sessions
+
+ismini keeps your current session plus up to 3 archived ones. Click **New chat** to archive the current and start fresh. Click **Sessions** to see the list and switch back to any archived conversation. Sessions are labeled by date and time.
 
 ## Admin (elevated commands)
 
@@ -74,38 +90,18 @@ That's it. All commands will then run with admin privileges for that session.
 
 Note: even with admin, ismini still blocks destructive patterns (`format C:`, `diskpart`, `shutdown /s`, `bcdedit`, etc.).
 
-## Architecture
+## Uninstall
 
-- `web.js` — Web UI server: local HTTP + SSE streaming, model auto-detection, per-turn health check (binds 127.0.0.1 only)
-- `web/index.html` — Browser chat client
-- `agent.js` — Core agent loop: prompt → LM Studio → tools → repeat (with streaming), context truncation, loop guards, exec safety
-- `tools/web-search.js` — DuckDuckGo HTML parsing + local content fetch (parallel, 25s cap each)
-- `tools/web-fetch.js` — Direct fetch + local HTML→text (no third-party readers)
-- `config.json` — Configuration (model endpoint, agent, tools)
-- `ismini.bat` — Launcher that also opens your browser
-- `uninstall.bat` — Stops the hidden server and removes the app
+Use **Windows Settings → Apps → Ismini Agent → Uninstall**, or run `uninstall.bat` in the app folder. Removes everything including config files. Your LM Studio and your files are untouched.
 
-## Why does this exist?
+## How it works (the short version)
 
-You want a local agent that:
-
-- Talks to your local LLM (LM Studio)
-- Can read/write files and run commands
-- Has no gateway daemon, no plugins, no cloud — one small web UI, zero dependencies
-- Zero npm/external package dependencies — only Node.js built-ins
-- Web tools are fully local: DuckDuckGo HTML for search + direct fetch with local HTML→text parsing (no third-party readers)
-  - This means web tool output depends on the target sites being reachable
-  - For fully offline operation, disable web tools via config: `"tools": { "enabled": ["read", "write", "edit", "exec"] }`
-- No cloud dependency — all data stays local
-
-## Design
-
-- One session per run: the whole conversation lives in memory (`agent.messages`) and dies with the process — no IDs, no files, nothing to clean up
-- **New chat** clears it mid-run; restart the server for a fresh start
-- Context window enforced on every API call — truncated window always anchored at a user message (chat-template safe)
-- Model auto-detection every turn — hot-swap models in LM Studio mid-session and limits adapt
-- Connection health check before every request
-- Zero dependencies — only Node.js built-ins (tested on Node 22)
+- One small web server (`web.js`) + one agent loop (`agent.js`) + a browser chat page
+- Talks to LM Studio's local API — whatever model you have loaded, it uses
+- Zero npm packages — only Node.js built-ins
+- All visuals are local files (papyrus, starfield, marble, the Cinzel font) — no CDNs, no internet needed for the UI
+- Binds to `127.0.0.1` only — nobody else on the network can reach it
+- Dictation, TTS, and Live Chat use the browser's built-in Web Speech API — no extra services
 
 ## Author & License
 
