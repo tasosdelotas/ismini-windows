@@ -1,5 +1,5 @@
 #define AppName "Ismini Agent"
-#define AppVersion "0.5.0"
+#define AppVersion "3.0.0"
 
 [Setup]
 AppName={#AppName}
@@ -18,6 +18,7 @@ CreateUninstallRegKey=yes
 [Files]
 Source: "web.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "agent.js"; DestDir: "{app}"; Flags: ignoreversion
+Source: "sessions.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ismini.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "launch-hidden.vbs"; DestDir: "{app}"; Flags: ignoreversion

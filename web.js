@@ -5,11 +5,12 @@
 //   node web.js [--port 8787]     or     ismini
 
 import http from 'node:http';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Agent } from './agent.js';
+import { SessionStore } from './sessions.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -77,6 +78,8 @@ function scheduleShutdown(reason) {
 }
 
 const ui = new WebUI(broadcast);
+const sessions = new SessionStore(__dirname);
+
 const agent = new Agent({
   baseUrl: config.model.baseUrl,
   apiKey: config.model.apiKey,
@@ -86,6 +89,7 @@ const agent = new Agent({
   contextWindow: config.agent.contextWindow || 131072,
   temperature: config.agent.temperature,
   maxTokens: config.agent.maxTokens,
+  sudo: config.tools?.sudo !== false,
   enabledTools: config.tools?.enabled || ['read', 'write', 'edit', 'exec', 'web_search', 'web_fetch'],
   ui: ui,
 });
@@ -147,6 +151,17 @@ try {
   }
 } catch { /* fall back to config values */ }
 
+// ── Restore active session on startup ─────────────────────────────────────
+const activeSession = sessions.getActive();
+if (activeSession && activeSession.messages.length > 0) {
+  agent.loadMessages(activeSession.messages);
+  console.log(`session        →  restored (${activeSession.messages.length} messages)`);
+} else {
+  // No saved session — create a fresh one
+  sessions.create();
+  console.log('session        →  new (no previous session found)');
+}
+
 // ── Run orchestration ───────────────────────────────────────────────────────
 // The Agent streams model tokens directly via process.stdout.write (and
 // tools may console.log). While a turn is running we route those writes
@@ -187,6 +202,8 @@ async function runTurn(text) {
   } finally {
     process.stdout.write = orig;
     busy = false;
+    // Auto-save session after each turn
+    sessions.saveActive(agent.messages);
     if (!paused) broadcast({ type: 'done', messages: agent.messages.length });
   }
 }
@@ -210,44 +227,57 @@ function readBody(req, limit = 1e6) {
   });
 }
 
-// ── Native file picker (Windows) ────────────────────────────────────────────
-// Opens a native Windows dialog via PowerShell (System.Windows.Forms).
-// Returns the chosen path — a file or a folder. Nothing is opened or
+// ── Native file picker ──────────────────────────────────────────────────────
+// Opens a native DESKTOP dialog (zenity on GNOME, kdialog on KDE) and
+// returns the chosen path — a file or a folder. Nothing is opened or
 // uploaded: the path is only inserted into the chat input.
-function runPicker(mode) {
-  // mode: 'file' or 'folder'
-  const ps = mode === 'folder'
-    ? `Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Pick a folder for ismini'; if ($d.ShowDialog() -eq 'OK') { Write-Output $d.SelectedPath }`
-    : `Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'Pick a file for ismini'; if ($d.ShowDialog() -eq 'OK') { Write-Output $d.FileName }`;
+function runPicker(bin, args) {
   return new Promise((resolve) => {
     let child;
     try {
-      child = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { stdio: ['ignore', 'pipe', 'pipe'] });
+      child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     } catch {
       return resolve({ ran: false });
     }
     let out = '', errOut = '';
     const timer = setTimeout(() => {
-      try { child.kill(); } catch { }
+      try { child.kill('SIGKILL'); } catch { }
       resolve({ ran: true, error: 'file picker timed out' });
     }, 300000); // 5 minutes to pick
     child.stdout.on('data', (d) => { out += d; });
     child.stderr.on('data', (d) => { errOut += d; });
-    child.on('error', () => { clearTimeout(timer); resolve({ ran: false }); }); // powershell missing
+    child.on('error', () => { clearTimeout(timer); resolve({ ran: false }); }); // binary missing
     child.on('close', (code) => {
       clearTimeout(timer);
-      const path = out.trim().split(/\r?\n/)[0].trim();
+      const path = out.trim().split('\n')[0].trim();
       if (code === 0 && path) return resolve({ ran: true, path });
-      // Empty output = user cancelled
-      return resolve({ ran: true, cancelled: true });
+      // Non-zero exit = user cancelled (zenity: 1, kdialog: 10) — unless
+      // stderr shows the dialog couldn't open at all (no display), in which
+      // case we let the caller try the next tool.
+      if (!/display|cannot open/i.test(errOut)) return resolve({ ran: true, cancelled: true });
+      resolve({ ran: false });
     });
   });
 }
 
 async function pickNativeFile(mode) {
-  const r = await runPicker(mode);
-  if (r.ran) return r;
-  return { error: 'no native file dialog available (PowerShell not found)' };
+  // mode: 'file' or 'folder'. kdialog has no single dialog for both
+  // (in file mode, picking a folder just navigates into it), so each
+  // mode gets its own native dialog per desktop.
+  const candidates = mode === 'folder'
+    ? [
+        { bin: 'zenity', args: ['--directory', '--title=Pick a folder for ismini'] },
+        { bin: 'kdialog', args: ['--getexistingdirectory', '', '--title', 'Pick a folder for ismini'] },
+      ]
+    : [
+        { bin: 'zenity', args: ['--file-selection', '--title=Pick a file for ismini'] },
+        { bin: 'kdialog', args: ['--getopenfilename', '', '--title', 'Pick a file for ismini'] },
+      ];
+  for (const c of candidates) {
+    const r = await runPicker(c.bin, c.args);
+    if (r.ran) return r; // success, cancel, or timeout — don't try the next tool
+  }
+  return { error: 'no native file dialog available (install zenity or kdialog)' };
 }
 
 let pickInProgress = false; // one dialog at a time (button double-clicks)
@@ -340,9 +370,12 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, { ok: true });
     }
     else if (req.method === 'POST' && url.pathname === '/new') {
+      // Archive current session and start fresh
+      sessions.saveActive(agent.messages); // ensure current state is saved
+      const newSession = sessions.archiveAndCreate();
       agent.reset();
-      broadcast({ type: 'reset' });
-      sendJson(res, 200, { ok: true });
+      broadcast({ type: 'reset', sessionId: newSession.id });
+      sendJson(res, 200, { ok: true, sessionId: newSession.id });
     }
     else if (req.method === 'GET' && url.pathname === '/api/pick-file') {
       if (pickInProgress) return sendJson(res, 409, { error: 'a file picker is already open' });
@@ -357,6 +390,25 @@ const server = http.createServer(async (req, res) => {
         pickInProgress = false;
       }
     }
+    else if (req.method === 'GET' && url.pathname === '/api/sudo') {
+      sendJson(res, 200, { enabled: agent.allowSudo });
+    }
+    else if (req.method === 'POST' && url.pathname === '/api/sudo') {
+      const body = await readBody(req);
+      let enabled;
+      try { enabled = JSON.parse(body).enabled; }
+      catch { return sendJson(res, 400, { error: 'expected {"enabled": true|false}' }); }
+      if (typeof enabled !== 'boolean') return sendJson(res, 400, { error: 'expected {"enabled": true|false}' });
+      agent.allowSudo = enabled; // applies live — next exec call picks it up
+      config.tools = config.tools || {};
+      config.tools.sudo = enabled;
+      try {
+        writeFileSync(join(__dirname, 'config.json'), JSON.stringify(config, null, 2) + '\n', 'utf8');
+      } catch (err) {
+        return sendJson(res, 500, { error: 'applied for this run, but saving to config.json failed: ' + err.message });
+      }
+      sendJson(res, 200, { ok: true, enabled });
+    }
     else if (req.method === 'GET' && url.pathname === '/state') {
       const model = await detectModel();
       sendJson(res, 200, {
@@ -364,7 +416,37 @@ const server = http.createServer(async (req, res) => {
         messages: agent.messages.length,
         contextWindow: agent.contextWindow,
         maxTokens: agent.maxTokens,
+        sessionId: sessions.getActive()?.id || null,
       });
+    }
+    else if (req.method === 'GET' && url.pathname === '/api/sessions') {
+      // List all sessions (newest first, max 3)
+      const list = sessions.list().map(s => ({
+        id: s.id,
+        started: s.started,
+        lastActive: s.lastActive,
+        messageCount: s.messages.length,
+        preview: s.messages.find(m => m.role === 'user')?.content?.substring(0, 80) || '(empty)',
+        active: s.id === sessions.data.activeId,
+      }));
+      sendJson(res, 200, { sessions: list, activeId: sessions.data.activeId });
+    }
+    else if (req.method === 'GET' && url.pathname.startsWith('/api/sessions/')) {
+      // GET /api/sessions/:id — get full session
+      const id = url.pathname.split('/').pop();
+      const s = sessions.get(id);
+      if (!s) return sendJson(res, 404, { error: 'session not found' });
+      sendJson(res, 200, { id: s.id, started: s.started, lastActive: s.lastActive, messages: s.messages });
+    }
+    else if (req.method === 'POST' && url.pathname.startsWith('/api/sessions/switch/')) {
+      // POST /api/sessions/switch/:id — switch active session
+      if (busy) return sendJson(res, 409, { error: 'agent busy — wait for current turn to finish' });
+      const id = url.pathname.split('/').pop();
+      const s = sessions.switchTo(id);
+      if (!s) return sendJson(res, 404, { error: 'session not found' });
+      agent.loadMessages(s.messages);
+      broadcast({ type: 'sessionSwitched', sessionId: s.id, messages: s.messages.length });
+      sendJson(res, 200, { ok: true, sessionId: s.id, messages: s.messages.length });
     }
     else if (req.method === 'GET' && url.pathname === '/transcript') {
       // For resync after a connection drop: the in-memory session so far.

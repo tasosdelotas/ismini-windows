@@ -5,3 +5,4 @@ Thumbs.db
 gh-*.js
 gh-out.txt
 test-out.txt
+sessions.json

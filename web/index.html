@@ -57,16 +57,12 @@
   }
   :root[data-theme="light"] #fileBtn,
   :root[data-theme="light"] #folderBtn,
-  :root[data-theme="light"] #sudoBtn {
     background: rgba(26,127,55,.08); border-color: rgba(26,127,55,.35); color: #1a7f37;
   }
   :root[data-theme="light"] #fileBtn:hover:not(:disabled),
   :root[data-theme="light"] #folderBtn:hover:not(:disabled),
-  :root[data-theme="light"] #sudoBtn:hover:not(:disabled) { background: rgba(26,127,55,.16); }
-  :root[data-theme="light"] #sudoBtn.off {
     background: rgba(207,34,46,.08); border-color: rgba(207,34,46,.35); color: #cf222e;
   }
-  :root[data-theme="light"] #sudoBtn.off:hover:not(:disabled) { background: rgba(207,34,46,.16); }
   :root[data-theme="light"] #pauseBtn {
     background: rgba(154,103,0,.1); border-color: rgba(154,103,0,.5); color: #9a6700;
   }
@@ -124,11 +120,13 @@
   header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 10px 16px;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
   }
+  header > * { flex-shrink: 0; }
   .logo {
     font: 700 15px/1 'Cinzel', var(--mono);
     letter-spacing: .14em;
@@ -438,19 +436,155 @@
     line-height: 1;
   }
   #fileBtn:hover:not(:disabled), #folderBtn:hover:not(:disabled) { background: rgba(126,201,143,.2); }
-  #sudoBtn {
+
+  /* ── Mic button (STT) ── */
+  #micBtn {
+    background: rgba(248,81,73,.12);
+    border-color: rgba(248,81,73,.5);
+    color: var(--err);
+    padding: 8px 12px;
+    font-size: 15px;
+    line-height: 1;
+  }
+  #micBtn:hover:not(:disabled) { background: rgba(248,81,73,.22); }
+  #micBtn.listening {
+    background: rgba(63,185,80,.15);
+    border-color: rgba(63,185,80,.6);
+    color: #3fb550;
+    animation: micBlink 1s ease-in-out infinite;
+  }
+  @keyframes micBlink { 50% { opacity: .4; } }
+
+  /* ── TTS toggle (header) ── */
+  #ttsBtn {
+    background: rgba(188,140,255,.10);
+    border-color: rgba(188,140,255,.4);
+    color: var(--tool);
+    font-weight: 600;
+  }
+  #ttsBtn:hover:not(:disabled) { background: rgba(188,140,255,.2); }
+  #ttsBtn.off {
+    background: rgba(139,148,158,.08);
+    border-color: rgba(139,148,158,.3);
+    color: var(--dim);
+  }
+
+  /* ── Live mode button ── */
+  #liveBtn {
+    background: rgba(248,81,73,.10);
+    border-color: rgba(248,81,73,.45);
+    color: var(--err);
+    font-weight: 600;
+  }
+  #liveBtn:hover { background: rgba(248,81,73,.2); }
+  #liveBtn.active {
+    background: rgba(63,185,80,.15);
+    border-color: rgba(63,185,80,.6);
+    color: #3fb550;
+    animation: micBlink 1s ease-in-out infinite;
+  }
+  #liveBtn.speaking {
+    background: rgba(188,140,255,.2);
+    border-color: rgba(188,140,255,.6);
+    color: #bc8cff;
+    animation: none;
+  }
+  @keyframes livePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(80,220,120,.3); }
+    50% { box-shadow: 0 0 8px 2px rgba(80,220,120,.2); }
+  }
+
+  /* ── Settings popover ── */
+  #settingsBtn {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--dim);
+    font-size: 15px;
+    padding: 7px 10px;
+  }
+  #settingsBtn:hover { color: var(--text); border-color: var(--dim); }
+  .settings-pop {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    min-width: 240px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    z-index: 20;
+    display: none;
+  }
+  .settings-pop.open { display: block; }
+  .settings-pop label {
+    display: block;
+    font: 12px/1.4 var(--mono);
+    color: var(--dim);
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+  .settings-pop label:first-child { margin-top: 0; }
+  .settings-pop select {
+    width: 100%;
+    font: 13px/1.4 inherit;
+    color: var(--text);
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    outline: none;
+  }
+  .settings-pop select:focus { border-color: var(--model); }
+  .settings-wrap { position: relative; }
+  .sessions-wrap { position: relative; }
+  #sessionsBtn {
+    background: rgba(88,166,255,.08);
+    border-color: rgba(88,166,255,.35);
+    color: var(--model);
+    font-weight: 600;
+  }
+  #sessionsBtn:hover { background: rgba(88,166,255,.18); }
+  .sessions-drop {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 200px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    z-index: 20;
+    display: none;
+  }
+  .sessions-drop.open { display: block; }
+  .sessions-drop .sess-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    font: 13px/1.4 var(--mono);
+    color: var(--text);
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .sessions-drop .sess-item:hover { background: rgba(88,166,255,.12); }
+  .sessions-drop .sess-item.active { color: var(--model); font-weight: 700; }
+  .sessions-drop .sess-item .sess-label { display: block; font-size: 12px; color: var(--dim); margin-top: 2px; }
     background: rgba(126,201,143,.10);
     border-color: rgba(126,201,143,.4);
     color: #7ec98f;
     font-weight: 600;
   }
-  #sudoBtn:hover:not(:disabled) { background: rgba(126,201,143,.2); }
-  #sudoBtn.off {
     background: rgba(255,140,140,.10);
     border-color: rgba(255,140,140,.4);
     color: #ff9c9c;
   }
-  #sudoBtn.off:hover:not(:disabled) { background: rgba(255,140,140,.2); }
   #sendBtn {
     background: rgba(88,166,255,.12);
     border-color: rgba(88,166,255,.4);
@@ -550,11 +684,25 @@
     <span class="logo">ISMINI</span>
     <span id="modelBadge" title="model endpoint">…</span>
     <span id="status"></span>
-
+    <button id="ttsBtn" title="Text-to-speech: read model responses aloud. Click to toggle."><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg><span>TTS</span></button>
+    <button id="liveBtn" title="Live conversation mode — continuous talk. Click to start/stop. Esc to exit."><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg><span>Live</span></button>
+    <div class="settings-wrap">
+      <button id="settingsBtn" title="Voice & language settings">⚙️</button>
+      <div class="settings-pop" id="settingsPop">
+        <label>TTS Voice</label>
+        <select id="ttsVoiceSel"></select>
+        <label>STT Language</label>
+        <select id="sttLangSel"></select>
+      </div>
+    </div>
     <div class="themes" role="group" aria-label="Theme">
       <button id="themePapyrus" title="Papyrus — ancient scroll">Papyrus</button>
       <button id="themeStars" title="Stars — night sky">Stars</button>
       <button id="themeMarble" title="Marble — black marble">Marble</button>
+    </div>
+    <div class="sessions-wrap">
+      <button id="sessionsBtn" title="Switch between recent sessions">Sessions</button>
+      <div class="sessions-drop" id="sessionsDrop"></div>
     </div>
     <button id="newBtn" title="Start a new conversation">New chat</button>
   </header>
@@ -568,6 +716,7 @@
     <div class="composer">
       <button id="fileBtn" title="Pick a file — opens your desktop file picker and inserts the path here">📄</button>
       <button id="folderBtn" title="Pick a folder — opens your desktop folder picker and inserts the path here">📁</button>
+      <button id="micBtn" title="Voice input — click to start/stop listening">🎤</button>
       <textarea id="input" rows="1" placeholder="Message ismini…  (Enter to send, Shift+Enter for a new line)"></textarea>
       <button id="pauseBtn" title="Pause — type a suggestion to redirect" style="display:none">⏸ Pause</button>
       <button id="sendBtn">Send</button>
@@ -799,8 +948,27 @@
   pauseBtn.addEventListener("click", async () => {
     pauseBtn.disabled = true;
     pauseBtn.textContent = "…";
-    try { await fetch("/pause", { method: "POST" }); }
-    catch { pauseBtn.disabled = false; pauseBtn.textContent = "⏸ Pause"; }
+    // Fallback: if "paused" SSE doesn't arrive within 5s, force-unlock
+    const fallback = setTimeout(() => {
+      if (busy) {
+        setBusy(false);
+        toast("Paused (forced) — you can type now");
+        statusEl.textContent = "paused";
+        statusEl.classList.add("active");
+        input.focus();
+      }
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = "⏸ Pause";
+    }, 5000);
+    try {
+      await fetch("/pause", { method: "POST" });
+      // If "paused" event arrives, it will call setBusy(false) and we clear the fallback
+      const check = setInterval(() => {
+        if (!busy) { clearTimeout(fallback); clearInterval(check); pauseBtn.disabled = false; pauseBtn.textContent = "⏸ Pause"; }
+      }, 200);
+      setTimeout(() => clearInterval(check), 6000);
+    }
+    catch { clearTimeout(fallback); pauseBtn.disabled = false; pauseBtn.textContent = "⏸ Pause"; }
   });
   function setModel(id) {
     const short = id ? id.split("/").pop() : "model offline";
@@ -828,6 +996,7 @@
   async function send() {
     const text = input.value.trim();
     if (!text || busy) return;
+    if (window.__isminiStopMic) window.__isminiStopMic(); // auto-stop mic on send
     input.value = "";
     autosize();
     addUser(text);
@@ -883,6 +1052,91 @@
   sendBtn.addEventListener("click", send);
   newBtn.addEventListener("click", newChat);
 
+  // ── Session picker: load/switch between last 3 sessions ─────────────────
+  const sessionsBtn = $("sessionsBtn");
+  const sessionsDrop = $("sessionsDrop");
+
+  function fmtDateTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+
+  async function loadSessions() {
+    try {
+      const r = await fetch("/api/sessions");
+      const j = await r.json();
+      sessionsDrop.innerHTML = "";
+      for (const s of j.sessions) {
+        const btn = document.createElement("button");
+        btn.className = "sess-item" + (s.active ? " active" : "");
+        btn.innerHTML = `${fmtDateTime(s.lastActive)}<span class="sess-label">${s.active ? "current" : "archived"}</span>`;
+        btn.addEventListener("click", () => {
+          sessionsDrop.classList.remove("open");
+          if (!s.active) switchSession(s.id);
+        });
+        sessionsDrop.appendChild(btn);
+      }
+    } catch { /* server not ready */ }
+  }
+
+  sessionsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    sessionsDrop.classList.toggle("open");
+  });
+  document.addEventListener("click", () => sessionsDrop.classList.remove("open"));
+
+  async function switchSession(id) {
+    if (busy) return;
+    try {
+      const r = await fetch(`/api/sessions/switch/${id}`, { method: "POST" });
+      if (!r.ok) return;
+      // Reload the chat with the switched session's messages
+      const tr = await fetch("/transcript");
+      const j = await tr.json();
+      closeLive();
+      chat.innerHTML = "";
+      restoringTranscript = true;
+      for (const m of j.messages || []) {
+        if (m.role === "user") addUser(m.content);
+        else if (m.role === "assistant") {
+          if (m.tools) m.tools.forEach((t) => addTool(t, "(ran)"));
+          if (m.content) addModel(m.content);
+        } else if (m.role === "tool") addTool(m.name || "tool", m.content);
+      }
+      restoringTranscript = false;
+      if (!j.messages || j.messages.length === 0) emptyState();
+      loadSessions(); // refresh picker
+    } catch { /* ignore */ }
+  }
+
+  // On page load: load sessions + restore active session's transcript
+  async function initSessions() {
+    await loadSessions();
+    // If there are messages in the active session, render them
+    try {
+      const r = await fetch("/transcript");
+      const j = await r.json();
+      if (j.messages && j.messages.length > 0) {
+        restoringTranscript = true;
+        for (const m of j.messages) {
+          if (m.role === "user") addUser(m.content);
+          else if (m.role === "assistant") {
+            if (m.tools) m.tools.forEach((t) => addTool(t, "(ran)"));
+            if (m.content) addModel(m.content);
+          } else if (m.role === "tool") addTool(m.name || "tool", m.content);
+        }
+        restoringTranscript = false;
+      }
+    } catch { /* first visit — empty state already shown */ }
+  }
+
+  // Update picker after "New chat"
+  const _newChatWithPicker = newChat;
+  newChat = function () {
+    _newChatWithPicker();
+    setTimeout(loadSessions, 300); // refresh picker after server responds
+  };
+
   // ── Theme picker: Papyrus / Stars / Marble (persisted in localStorage, applied pre-paint in <head>) ──
   const themeBtns = { papyrus: $("themePapyrus"), stars: $("themeStars"), marble: $("themeMarble") };
   function curThemeName() {
@@ -901,7 +1155,6 @@
   }
   paintThemeBtns();
   for (const [name, btn] of Object.entries(themeBtns)) btn.addEventListener("click", () => setTheme(name));
-
 
 
   // ── file/folder picker (native desktop dialog) ───────────────
@@ -952,7 +1205,7 @@
       case "tool": addTool(ev.name, ev.result); break;
       case "warn": addBanner("warn", ev.text); break;
       case "error": closeLive(); addBanner("error", ev.text); break;
-      case "done": closeLive(); setBusy(false); break;
+      case "done": closeLive(); setBusy(false); if (window.__isminiLiveOnDone) window.__isminiLiveOnDone(); break;
       case "paused":
         closeLive();
         setBusy(false);
@@ -977,6 +1230,7 @@
       closeLive();
       chat.innerHTML = "";
       emptyState();
+      restoringTranscript = true;
       for (const m of j.messages || []) {
         if (m.role === "user") addUser(m.content);
         else if (m.role === "assistant") {
@@ -984,12 +1238,389 @@
           if (m.content) addModel(m.content);
         } else if (m.role === "tool") addTool(m.name || "tool", m.content);
       }
+      restoringTranscript = false;
       setBusy(false);
     } catch { /* server gone; EventSource will retry */ }
   }
 
+  // ── STT: Speech-to-Text via Web Speech API ─────────────────────
+  const micBtn = $("micBtn");
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    micBtn.style.display = "none"; // browser doesn't support it
+  } else {
+    let recognition = null;
+    let isListening = false;
+    let recGen = 0; // generation counter — invalidates stale onend events
+
+    function startListening() {
+      const gen = ++recGen;
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = (window.__isminiSttLang && window.__isminiSttLang()) || navigator.language || "en-US";
+
+      let baseText = input.value.replace(/\s+$/, "");
+      let finalTranscript = "";
+
+      recognition.onresult = (e) => {
+        if (gen !== recGen || !isListening) return; // stale or stopped
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const r = e.results[i];
+          if (r.isFinal) finalTranscript += r[0].transcript;
+          else interim += r[0].transcript;
+        }
+        input.value = (baseText ? baseText + " " : "") + finalTranscript + interim;
+        autosize();
+      };
+
+      recognition.onerror = (e) => {
+        if (gen !== recGen) return; // stale
+        if (e.error !== "no-speech" && e.error !== "aborted") {
+          toast("mic error: " + e.error);
+        }
+        stopListening();
+      };
+
+      recognition.onend = () => {
+        if (gen !== recGen) return; // stale — ignore
+        if (isListening) {
+          // Echo guard: don't auto-restart during discard window
+          if (Date.now() < discardUntil) return;
+          try { recognition.start(); } catch { stopListening(); }
+        }
+      };
+
+      try {
+        recognition.start();
+        isListening = true;
+        micBtn.classList.add("listening");
+        micBtn.title = "Listening… click to stop";
+      } catch (e) {
+        toast("mic start failed: " + e.message);
+      }
+    }
+
+    function stopListening() {
+      isListening = false;
+      recGen++; // invalidate any pending onend/onresult from this instance
+      if (recognition) { try { recognition.stop(); } catch {} }
+      micBtn.classList.remove("listening");
+      micBtn.title = "Voice input — click to start listening";
+      input.focus();
+    }
+    window.__isminiStopMic = stopListening; // expose to send()
+
+    micBtn.addEventListener("click", () => {
+      if (isListening) stopListening();
+      else startListening();
+    });
+
+    // ── Live Mode: continuous conversation loop ────────────────
+    let liveMode = false;
+    let lastInputValue = "";
+    let lastChangeTime = 0;
+    let discardUntil = 0; // discard transcribed text until this timestamp (echo guard)
+    const VAD_TIMEOUT = 900; // ms of input stability → auto-send
+    const SPEAKER_SETTLE_MS = 3000; // wait 3s after TTS before opening mic
+    const DISCARD_MS = 1500; // discard transcribed text for 1.5s after mic opens
+    const liveBtn = $("liveBtn");
+
+    function enterLiveMode() {
+      if (liveMode) return;
+      liveMode = true;
+      liveBtn.classList.add("active");
+      window.__isminiLiveOnDone = () => {
+        if (!liveMode) return;
+        const resumeMic = () => {
+          if (!liveMode) return;
+          input.value = "";
+          autosize();
+          lastInputValue = "";
+          lastChangeTime = 0;
+          // Wait for speaker to FULLY settle, then open mic.
+          // Chrome bug: onend can fire before audio is actually done.
+          const tryOpenMic = () => {
+            if (!liveMode) return;
+            // If TTS is still speaking (Chrome fires onend early), wait
+            if ("speechSynthesis" in window && speechSynthesis.speaking) {
+              setTimeout(tryOpenMic, 500);
+              return;
+            }
+            setTimeout(() => {
+              if (!liveMode) return;
+              input.value = "";
+              autosize();
+              lastInputValue = "";
+              lastChangeTime = 0;
+              discardUntil = Date.now() + DISCARD_MS;
+              startListening();
+            }, SPEAKER_SETTLE_MS);
+          };
+          tryOpenMic();
+        };
+        const startTTS = () => {
+          const lastMsg = chat.querySelector(".msg.assistant .body");
+          if (lastMsg && ttsEnabled && "speechSynthesis" in window) {
+            liveBtn.classList.add("speaking");
+            const clean = textForSpeech(lastMsg.textContent);
+            if (clean) {
+              const u = new SpeechSynthesisUtterance(clean);
+              u.rate = 1.0;
+              u.pitch = 1.0;
+              const voices = speechSynthesis.getVoices();
+              const idx = parseInt(ttsVoiceSel.value, 10);
+              if (!isNaN(idx) && voices[idx]) u.voice = voices[idx];
+              u.onend = () => { liveBtn.classList.remove("speaking"); resumeMic(); };
+              u.onerror = () => { liveBtn.classList.remove("speaking"); resumeMic(); };
+              speechSynthesis.cancel();
+              speechSynthesis.speak(u);
+            } else { resumeMic(); }
+          } else {
+            setTimeout(resumeMic, 500);
+          }
+        };
+        // CRITICAL: recognition.stop() is async — engine may still be capturing audio.
+        // Poll readyState until it's 0 (inactive) before allowing TTS to start.
+        const waitForMicClosed = (attempts) => {
+          if (!liveMode) return;
+          if (!recognition || recognition.readyState === 0) {
+            startTTS();
+            return;
+          }
+          if (attempts > 20) { startTTS(); return; } // 2s safety timeout
+          setTimeout(() => waitForMicClosed(attempts + 1), 100);
+        };
+        waitForMicClosed(0);
+      };
+      startListening();
+    }
+
+    function exitLiveMode() {
+      liveMode = false;
+      liveBtn.classList.remove("active", "speaking");
+      window.__isminiLiveOnDone = null;
+      stopListening();
+      if ("speechSynthesis" in window) speechSynthesis.cancel();
+    }
+
+    liveBtn.addEventListener("click", () => {
+      if (liveMode) exitLiveMode();
+      else enterLiveMode();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && liveMode) exitLiveMode();
+    });
+
+    // VAD: poll input stability → auto-send after 900ms of no change
+    setInterval(() => {
+      if (!liveMode || !isListening) return;
+      // Echo guard: discard transcribed text during discard window
+      if (Date.now() < discardUntil) {
+        if (input.value) { input.value = ""; autosize(); lastInputValue = ""; }
+        return;
+      }
+      const cur = input.value;
+      if (cur !== lastInputValue) {
+        lastInputValue = cur;
+        lastChangeTime = Date.now();
+      } else if (cur.trim() && Date.now() - lastChangeTime > VAD_TIMEOUT) {
+        lastInputValue = "";
+        lastChangeTime = 0;
+        stopListening();
+        send();
+      }
+    }, 100);
+  }
+
+  // ── TTS: Text-to-Speech via speechSynthesis ─────────────────────
+  const ttsBtn = $("ttsBtn");
+  let ttsEnabled = false;
+  try { ttsEnabled = localStorage.getItem("ismini-tts") === "1"; } catch {}
+
+  function paintTtsBtn() {
+    ttsBtn.querySelector("span").textContent = ttsEnabled ? "TTS" : "Muted";
+    ttsBtn.querySelector("svg").style.opacity = ttsEnabled ? "1" : "0.4";
+    ttsBtn.classList.toggle("off", !ttsEnabled);
+  }
+  paintTtsBtn();
+
+  // Strip markdown/code for natural speech
+  function textForSpeech(raw) {
+    let t = String(raw);
+    // Strip emojis (all common ranges + ZWJ sequences + variation selectors)
+    t = t.replace(/\p{Extended_Pictographic}/gu, "");
+    t = t.replace(/[\u{1F3FB}-\u{1F3FF}\u{FE0F}\u{200D}]/gu, "");
+    t = t.replace(/```[\s\S]*?```/g, " ");          // code blocks
+    t = t.replace(/`([^`]+)`/g, "$1");              // inline code
+    t = t.replace(/\*\*([^*]+)\*\*/g, "$1");        // bold
+    t = t.replace(/\*([^*]+)\*/g, "$1");            // italic
+    t = t.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");  // links → text
+    t = t.replace(/^#{1,6} /gm, "");               // headings
+    t = t.replace(/^[-*] /gm, "");                 // list bullets
+    t = t.replace(/^\d+\. /gm, "");                // numbered lists
+    t = t.replace(/https?:\/\/\S+/g, " link ");    // bare URLs
+    t = t.replace(/\s{2,}/g, " ");                 // collapse whitespace
+    return t.trim();
+  }
+
+  function speak(text) {
+    if (!ttsEnabled || !("speechSynthesis" in window)) return;
+    const clean = textForSpeech(text);
+    if (!clean) return;
+    speechSynthesis.cancel(); // stop any previous utterance
+    const u = new SpeechSynthesisUtterance(clean);
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    // Pick a good voice (prefer en, then any available)
+    const voices = speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.lang.startsWith("en") && v.localService) ||
+                      voices.find(v => v.lang.startsWith("en")) ||
+                      voices[0];
+    if (preferred) u.voice = preferred;
+    speechSynthesis.speak(u);
+  }
+
+  // Hook into model completion: speak when a model message finishes
+  const _origCloseLive = closeLive;
+  closeLive = function () {
+    const text = liveText;
+    _origCloseLive();
+    if (text) speak(text);
+  };
+
+  // Also speak non-streaming model messages (SSE "model" event)
+  let restoringTranscript = false;
+  const _origAddModel = addModel;
+  addModel = function (text, streaming) {
+    const el = _origAddModel(text, streaming);
+    if (!streaming && !restoringTranscript) speak(text);
+    return el;
+  };
+
+  ttsBtn.addEventListener("click", () => {
+    ttsEnabled = !ttsEnabled;
+    paintTtsBtn();
+    try { localStorage.setItem("ismini-tts", ttsEnabled ? "1" : "0"); } catch {}
+    if (!ttsEnabled) cancelSpeech();
+    else toast("TTS on — model responses will be read aloud");
+  });
+
+  // Cancel speech on new chat / page hide
+  const _origNewChat = newChat;
+  newChat = function () {
+    cancelSpeech();
+    _origNewChat();
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) cancelSpeech();
+  });
+
+  // ── Settings popover: voice picker + STT language ────────────────
+  const settingsBtn = $("settingsBtn");
+  const settingsPop = $("settingsPop");
+  const ttsVoiceSel = $("ttsVoiceSel");
+  const sttLangSel = $("sttLangSel");
+
+  // Common languages for STT
+  const STT_LANGS = [
+    ["en-US", "English (US)"],
+    ["en-GB", "English (UK)"],
+    ["el-GR", "Greek (Ελληνικά)"],
+    ["es-ES", "Spanish"],
+    ["fr-FR", "French"],
+    ["de-DE", "German"],
+    ["it-IT", "Italian"],
+    ["pt-BR", "Portuguese (BR)"],
+    ["nl-NL", "Dutch"],
+    ["ru-RU", "Russian"],
+    ["ja-JP", "Japanese"],
+    ["ko-KR", "Korean"],
+    ["zh-CN", "Chinese (Simplified)"],
+    ["ar-SA", "Arabic"],
+    ["tr-TR", "Turkish"],
+    ["he-IL", "Hebrew"],
+  ];
+
+  // Populate STT language select
+  let savedSttLang = "";
+  try { savedSttLang = localStorage.getItem("ismini-stt-lang") || ""; } catch {}
+  STT_LANGS.forEach(([code, label]) => {
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = label;
+    sttLangSel.appendChild(opt);
+  });
+  sttLangSel.value = savedSttLang || (navigator.language || "en-US");
+  sttLangSel.addEventListener("change", () => {
+    try { localStorage.setItem("ismini-stt-lang", sttLangSel.value); } catch {}
+  });
+
+  // Populate TTS voice select (browser voices only)
+  function populateVoices() {
+    if (!("speechSynthesis" in window)) return;
+    const voices = speechSynthesis.getVoices();
+    if (!voices.length) return;
+    ttsVoiceSel.innerHTML = "";
+    voices.sort((a, b) => {
+      if (a.localService !== b.localService) return b.localService ? 1 : -1;
+      if (a.lang !== b.lang) return a.lang.localeCompare(b.lang);
+      return a.name.localeCompare(b.name);
+    });
+    voices.forEach((v, i) => {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = v.name + "  [" + v.lang + "]";
+      ttsVoiceSel.appendChild(opt);
+    });
+    // Restore saved selection
+    const saved = parseInt(localStorage.getItem("ismini-tts-voice") || "", 10);
+    if (!isNaN(saved) && saved < voices.length) ttsVoiceSel.value = saved;
+  }
+  populateVoices();
+  if ("speechSynthesis" in window) {
+    speechSynthesis.onvoiceschanged = populateVoices;
+  }
+  ttsVoiceSel.addEventListener("change", () => {
+    try { localStorage.setItem("ismini-tts-voice", ttsVoiceSel.value); } catch {}
+  });
+
+  // Override speak() to use selected voice
+  function cancelSpeech() {
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+  }
+  speak = function (text) {
+    if (!ttsEnabled || !("speechSynthesis" in window)) return;
+    const clean = textForSpeech(text);
+    if (!clean) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(clean);
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    const voices = speechSynthesis.getVoices();
+    const idx = parseInt(ttsVoiceSel.value, 10);
+    if (!isNaN(idx) && voices[idx]) u.voice = voices[idx];
+    speechSynthesis.speak(u);
+  };
+
+  // Settings popover open/close
+  settingsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    settingsPop.classList.toggle("open");
+  });
+  document.addEventListener("click", (e) => {
+    if (!settingsPop.contains(e.target) && e.target !== settingsBtn) {
+      settingsPop.classList.remove("open");
+    }
+  });
+
+  // Expose STT language getter for startListening
+  window.__isminiSttLang = () => sttLangSel.value;
+
   emptyState();
   input.focus();
+  initSessions(); // restore previous session on load
 })();
 </script>
 </body>
