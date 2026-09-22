@@ -329,13 +329,16 @@ async function toolExec(args, timeoutSecs) {
   // Safety: block obviously dangerous commands (platform-aware)
   const DANGEROUS_PATTERNS = isWin ? [
     /\bformat\s+[a-zA-Z]:/i,                // format C: etc.
-    /\brmdir\s+\/+s\s+\/+q\s+[a-zA-Z]:\\?\s*$/i,  // rmdir /s /q C:\\
-    /\bdel\s+\/+f\s+\/+s\s+\/+q/i,           // del /f /s /q
+    /\b(?:rmdir|rd)\s+\/+s\s+\/+q\b/i,       // recursive quiet directory removal
+    /\bdel\s+\/+f\s+\/+s\s+\/+q\b/i,         // recursive forced file removal
+    /\bRemove-Item\b[^\r\n]*(?:-Recurse|-Force)/i, // PowerShell recursive removal
+    /\b(?:Clear-Content|Set-Content)\b[^\r\n]*\\(?:Windows|ProgramData|Users)\\/i,
     /\bshutdown\s+\/(s|r|p)/i,              // shutdown /s, /r, /p
     /\bdiskpart\b/i,                         // diskpart (disk operations)
     /\bbcdedit\b/i,                          // boot config
     /\breg\s+delete\s+\/+f/i,               // registry delete force
     /\bwmic\s+.*\bdelete\b/i,               // wmic delete
+    /\b(?:powershell|pwsh)\b[^\r\n]*(?:Stop-Computer|Restart-Computer|Format-Volume|Clear-Disk)\b/i,
     /\brm\s+-rf\s+\/$/,                     // rm -rf / (git-bash)
     /\bmkfs(\.ext\d*)?\b/,                  // format disks (git-bash)
   ] : [
@@ -534,6 +537,7 @@ export class Agent {
     this.maxTokens = opts.maxTokens || 8192;
     this.messages = []; // ONE in-memory session — no IDs, no files, no store
     this.workspace = opts.workspace || process.cwd();
+    this.allowSudo = opts.sudo !== false;
     this.ui = opts.ui;
     this._abort = null;
 
@@ -592,6 +596,16 @@ export class Agent {
     this._toolFailStreak = {};
     this._toolFailNoted = new Set();
     this.enabledTools = [...this._enabledToolsInit];
+  }
+
+  loadMessages(messages) {
+    this.messages = Array.isArray(messages)
+      ? messages.filter(m => m && typeof m === 'object' && typeof m.role === 'string')
+      : [];
+    this._consecutiveToolTurns = 0;
+    this._consecutiveEmptyTurns = 0;
+    this._toolFailStreak = {};
+    this._toolFailNoted = new Set();
   }
 
   // Pause the current turn — aborts the in-flight LM Studio stream.
