@@ -285,7 +285,8 @@ async function toolWrite(args, workspace, contextDir) {
 async function toolEdit(args, workspace, contextDir) {
   const p = args.path || args.file;
   if (!p) return 'Error: "path" required.';
-  if (!args.oldText && !args.newText) return 'Error: both "oldText" and "newText" required.';
+  if (!args.oldText) return 'Error: "oldText" is required and must be a non-empty string.';
+  if (args.newText === undefined) return 'Error: "newText" is required.';
   try {
     // Relative paths resolve from the running user's home directory for system-wide access
     const resolved = isAbsolute(p) ? p : join(homedir(), p);
@@ -346,7 +347,6 @@ async function toolExec(args, timeoutSecs) {
     /\brm\s+-rf\s+\/$/,                     // rm -rf / (at end of line)
     /\bmkfs(\.ext\d*)?\b/,                  // format disks (mkfs, mkfs.ext4, etc.)
     /\bdd\s+(if|of)\s*=\s*\/dev\//,         // raw disk reads/writes
-    /\bsudo\s+(reboot|shutdown|poweroff)/i,  // system power actions
     /\b(apt|dpkg|yum|dnf|pacman|apk)\s+.*\s+(-y|--yes)(\s|$)/,  // force install without confirmation
     /\bsed\s+-i\s+.*\/dev\//,               // sed in-place on device files
     /\bchmod\s+0?[7]?7[7]?\s+\//,           // chmod 777 on root paths
@@ -417,15 +417,6 @@ async function toolExec(args, timeoutSecs) {
             } else {
               out += stderr;
             }
-          } else if (/a password is required|no tty present|must be run from a terminal|not in the sudoers file|I'm afraid I can't do that/i.test(stderr)) {
-            out += [
-              '',
-              '[ismini: this command needs root, but this user cannot use sudo without a password.]',
-              'To let ismini run sudo commands (one-time setup):',
-              '    sudo visudo -f /etc/sudoers.d/ismini',
-              '    and add one line:  <your-username> ALL=(ALL) NOPASSWD: ALL',
-              'Or set "tools.sudo": false in config.json to run every command as a normal user.',
-            ].join('\n');
           } else {
             out += stderr;
           }
@@ -460,7 +451,8 @@ async function toolDelete(args) {
   const p = args.path;
   if (!p) return 'Error: "path" required.';
   try {
-    unlinkSync(p);
+    const resolved = isAbsolute(p) ? p : join(homedir(), p);
+    unlinkSync(resolved);
     return `Deleted ${p}`;
   } catch (err) { return `Error deleting file: ${err.message}`; }
 }
@@ -537,7 +529,6 @@ export class Agent {
     this.maxTokens = opts.maxTokens || 8192;
     this.messages = []; // ONE in-memory session — no IDs, no files, no store
     this.workspace = opts.workspace || process.cwd();
-    this.allowSudo = opts.sudo !== false;
     this.ui = opts.ui;
     this._abort = null;
 
@@ -606,6 +597,7 @@ export class Agent {
     this._consecutiveEmptyTurns = 0;
     this._toolFailStreak = {};
     this._toolFailNoted = new Set();
+    this.enabledTools = [...this._enabledToolsInit];
   }
 
   // Pause the current turn — aborts the in-flight LM Studio stream.
@@ -634,6 +626,8 @@ export class Agent {
 
     try {
       while (turnCount < maxTurns) {
+        // If pause() was called, exit immediately
+        if (this._abort?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
         turnCount++;
 
         // Get messages for API call, respecting context window
@@ -663,7 +657,13 @@ export class Agent {
               process.stdout.write(chunk);
             },
           }),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('Model response timeout (300s)')), 300000))
+          new Promise((_, rej) => setTimeout(() => {
+            // Abort the in-flight request so it stops streaming and `busy`
+            // clears cleanly — otherwise a new turn can start while the old
+            // one is still streaming, and late chunks bleed into the new turn.
+            this._abort?.abort();
+            rej(new Error('Model response timeout (300s)'));
+          }, 300000))
         ]);
 
         // Print bottom border after streaming
@@ -732,6 +732,12 @@ export class Agent {
             const finalText = (cleaned && cleaned.trim()) || (streamedContent && streamedContent.trim()) || '';
             if (finalText) {
               this._push('assistant', finalText);
+              // Non-streaming JSON path: nothing was streamed to the UI, so
+              // broadcast the final answer here — otherwise it's invisible
+              // until the transcript is reloaded.
+              if (!streamedContent.trim()) {
+                this.ui.showModelMessage(finalText);
+              }
             }
           }
           break;
@@ -768,6 +774,11 @@ export class Agent {
         }
         // Process tool calls — track genuine failures (across turns)
         for (const tc of toolCalls) {
+          // Abort check between tool calls — if pause() was called while the
+          // previous tool (e.g. exec) was running, stop immediately instead of
+          // launching the next tool in the batch.
+          if (this._abort?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
           const result = await this._executeTool(tc.name, tc.args);
 
           this.ui.showToolOutput(tc.name, result);
@@ -902,7 +913,7 @@ export class Agent {
       { type: 'function', function: { name: 'write', description: 'Write or overwrite a file. Args: path (string), content (string). Returns success message.', parameters: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } }, required: ['path', 'content'], additionalProperties: false } }},
       { type: 'function', function: { name: 'edit', description: 'Find and replace text in a file. Args: path (string), oldText (string), newText (string). Returns success message.', parameters: { type: 'object', properties: { path: { type: 'string' }, oldText: { type: 'string' }, newText: { type: 'string' } }, required: ['path', 'oldText', 'newText'], additionalProperties: false } }},
       { type: 'function', function: { name: 'delete', description: 'Delete a file. Args: path (string). Returns success message or error.', parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'], additionalProperties: false } }},
-      { type: 'function', function: { name: 'exec', description: "Execute a shell command on the local machine where ismini runs (the user's own machine). Args: command (string). Returns stdout/stderr output.", parameters: { type: 'object', properties: { command: { type: 'string' }, sudo: { type: 'boolean' } }, required: ['command'], additionalProperties: false } }},
+      { type: 'function', function: { name: 'exec', description: "Execute a shell command on the local machine where ismini runs (the user's own machine). Args: command (string). Returns stdout/stderr output.", parameters: { type: 'object', properties: { command: { type: 'string' } }, required: ['command'], additionalProperties: false } }},
       { type: 'function', function: { name: 'web_search', description: 'Search the web (DuckDuckGo) and get readable results. Args: query (string). ALWAYS use this for web lookups instead of exec/curl.', parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'], additionalProperties: false } }},
       { type: 'function', function: { name: 'web_fetch', description: 'Fetch a URL and return its readable text. Args: url (string). ALWAYS use this to read web pages instead of exec/curl.', parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'], additionalProperties: false } }},
     ];
@@ -986,7 +997,7 @@ export class Agent {
     if (stream && resp.body) {
       const contentType = resp.headers.get('content-type') || '';
       if (contentType.includes('event-stream') || contentType.includes('text/event')) {
-        return this._streamResponse(resp, opts.onChunk);
+        return this._streamResponse(resp, opts.onChunk, opts.signal);
       }
       // LM Studio may return JSON even with stream=true — fall through
     }
@@ -995,7 +1006,7 @@ export class Agent {
     return data;
   }
 
-  async _streamResponse(resp, onChunk) {
+  async _streamResponse(resp, onChunk, signal) {
     // Stream response chunks and accumulate text + tool calls.
     // Returns the same structure as non-streaming for compatibility.
     const reader = resp.body.getReader();
@@ -1004,6 +1015,16 @@ export class Agent {
     let accumulated = '';
     let chunkCount = 0;
     let apiError = null; // captured from SSE error payloads — thrown after the stream ends
+
+    // Explicitly cancel the body reader when the abort signal fires.
+    // Relying on undici's implicit cancellation is timing-dependent — the
+    // reader may still deliver buffered chunks after the abort. This ensures
+    // the stream stops immediately and reader.read() rejects.
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        reader.cancel().catch(() => {});
+      }, { once: true });
+    }
 
     // Readability: insert blank lines between sections/lists/headings so the
     // output is never a wall of text. Streaming-safe (complete lines only).
@@ -1018,7 +1039,18 @@ export class Agent {
     let hasToolCall = false;
 
     while (true) {
-      const { done, value } = await reader.read();
+      // Hard abort check before every read — stops the loop immediately
+      // even if the reader.cancel() hasn't propagated yet.
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
+      let done, value;
+      try {
+        ({ done, value } = await reader.read());
+      } catch (err) {
+        // reader.read() rejects when the stream is cancelled by abort
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+        throw err;
+      }
       if (done) break;
 
       accumulated += decoder.decode(value, { stream: true });
@@ -1120,7 +1152,7 @@ export class Agent {
     if (!impl) return `Unknown tool: ${name}`;
 
     // Pass context-specific params based on tool type
-    if (name === 'exec') return await impl(args, this.execTimeout, this.allowSudo);
+    if (name === 'exec') return await impl(args, this.execTimeout);
     if (['read', 'write', 'edit'].includes(name)) return await impl(args, this.workspace, this._contextDir);
     return await impl(args);
   }

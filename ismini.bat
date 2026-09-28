@@ -4,10 +4,11 @@ setlocal
 set "DIR=%~dp0"
 set "URL=http://127.0.0.1:8787/"
 
-REM Check node is available
+REM Verify Node.js is available on PATH (LM Studio or standalone install)
 where node >NUL 2>&1
 if %errorlevel% neq 0 (
-  echo ERROR: Node.js not found. Install it from https://nodejs.org/
+  echo ERROR: Node.js not found on PATH.
+  echo Install Node.js from https://nodejs.org/ or ensure LM Studio is installed.
   pause
   exit /b 1
 )

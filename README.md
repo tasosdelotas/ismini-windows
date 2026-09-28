@@ -24,17 +24,17 @@ ismini is a small, friendly AI assistant that runs entirely on your computer. It
 - 🧠 **Memory** — ismini remembers facts across sessions (persistent memory file)
 - 📋 **Sessions** — switch between your current and up to 3 archived conversations
 - 🎨 **Three themes** — **Papyrus** (an ancient scroll), **Stars** (a twinkling night sky), or **Marble** (black marble) — pick one in the header and ismini remembers your choice
+- 🏛️ **Greek meander border** — a classic thunder-pattern frames the left and right edges of the interface
 
 ## What you need
 
 - **Windows 10/11** (x64)
-- **Node.js 18 or newer** — included in the installer
 - **LM Studio** with a model loaded — download from [lmstudio.ai](https://lmstudio.ai/)
 - A **modern browser** (Edge recommended for the best TTS voices, Chrome also works)
 
 ## Setup (1 minute)
 
-1. Download **ismini-installer-3.0.0.exe** from the [Releases page](https://github.com/tasosdelotas/ismini-windows/releases)
+1. Download **ismini-installer-4.0.0.exe** from the [Releases page](https://github.com/tasosdelotas/ismini-windows/releases)
 2. Run it and click through the installer
 3. An **ismini** icon appears on your desktop. Click it to start.
 
@@ -102,8 +102,8 @@ Use **Windows Settings → Apps → Ismini Agent → Uninstall**, or run `uninst
 
 - One small web server (`web.js`) + one agent loop (`agent.js`) + a browser chat page
 - Talks to LM Studio's local API — whatever model you have loaded, it uses
-- Zero npm packages — only Node.js built-ins
-- All visuals are local files (papyrus, starfield, marble, the Cinzel font) — no CDNs, no internet needed for the UI
+- Zero npm packages
+- All visuals are local files (papyrus, starfield, marble, meander border, the Cinzel font) — no CDNs, no internet needed for the UI
 - Binds to `127.0.0.1` only — nobody else on the network can reach it
 - Dictation, TTS, and Live Chat use the browser's built-in Web Speech API — no extra services
 

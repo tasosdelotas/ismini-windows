@@ -89,7 +89,6 @@ const agent = new Agent({
   contextWindow: config.agent.contextWindow || 131072,
   temperature: config.agent.temperature,
   maxTokens: config.agent.maxTokens,
-  sudo: config.tools?.sudo !== false,
   enabledTools: config.tools?.enabled || ['read', 'write', 'edit', 'exec', 'web_search', 'web_fetch'],
   ui: ui,
 });
@@ -228,9 +227,11 @@ function readBody(req, limit = 1e6) {
 }
 
 // ── Native file picker ──────────────────────────────────────────────────────
-// Opens a native DESKTOP dialog (zenity on GNOME, kdialog on KDE) and
-// returns the chosen path — a file or a folder. Nothing is opened or
-// uploaded: the path is only inserted into the chat input.
+// Opens a native DESKTOP dialog and returns the chosen path — a file or a
+// folder. Nothing is opened or uploaded: the path is only inserted into the
+// chat input.
+//   Windows → PowerShell + System.Windows.Forms (OpenFileDialog / FolderBrowserDialog)
+//   Linux   → zenity (GNOME) or kdialog (KDE)
 function runPicker(bin, args) {
   return new Promise((resolve) => {
     let child;
@@ -261,23 +262,35 @@ function runPicker(bin, args) {
 }
 
 async function pickNativeFile(mode) {
-  // mode: 'file' or 'folder'. kdialog has no single dialog for both
-  // (in file mode, picking a folder just navigates into it), so each
-  // mode gets its own native dialog per desktop.
-  const candidates = mode === 'folder'
-    ? [
-        { bin: 'zenity', args: ['--directory', '--title=Pick a folder for ismini'] },
-        { bin: 'kdialog', args: ['--getexistingdirectory', '', '--title', 'Pick a folder for ismini'] },
-      ]
-    : [
-        { bin: 'zenity', args: ['--file-selection', '--title=Pick a file for ismini'] },
-        { bin: 'kdialog', args: ['--getopenfilename', '', '--title', 'Pick a file for ismini'] },
-      ];
+  // mode: 'file' or 'folder'. Each platform gets its own native dialog.
+  let candidates;
+  if (process.platform === 'win32') {
+    // Windows: native dialog via PowerShell + System.Windows.Forms.
+    // The chosen path is printed to stdout; cancel prints nothing (exit 0).
+    const ps = mode === 'folder'
+      ? "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Pick a folder for ismini'; if ($d.ShowDialog() -eq 'OK') { $d.SelectedPath }"
+      : "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'Pick a file for ismini'; if ($d.ShowDialog() -eq 'OK') { $d.FileName }";
+    candidates = [{ bin: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-Command', ps] }];
+  } else {
+    // kdialog has no single dialog for both (in file mode, picking a folder
+    // just navigates into it), so each mode gets its own native dialog.
+    candidates = mode === 'folder'
+      ? [
+          { bin: 'zenity', args: ['--directory', '--title=Pick a folder for ismini'] },
+          { bin: 'kdialog', args: ['--getexistingdirectory', '', '--title', 'Pick a folder for ismini'] },
+        ]
+      : [
+          { bin: 'zenity', args: ['--file-selection', '--title=Pick a file for ismini'] },
+          { bin: 'kdialog', args: ['--getopenfilename', '', '--title', 'Pick a file for ismini'] },
+        ];
+  }
   for (const c of candidates) {
     const r = await runPicker(c.bin, c.args);
     if (r.ran) return r; // success, cancel, or timeout — don't try the next tool
   }
-  return { error: 'no native file dialog available (install zenity or kdialog)' };
+  return { error: process.platform === 'win32'
+    ? 'no native file dialog available'
+    : 'no native file dialog available (install zenity or kdialog)' };
 }
 
 let pickInProgress = false; // one dialog at a time (button double-clicks)
@@ -288,6 +301,14 @@ const INDEX_HTML = readFileSync(join(__dirname, 'web', 'index.html'), 'utf8');
 // Favicon for the browser tab (served at /favicon-256.png)
 const FAVICON_PNG = (() => {
   try { return readFileSync(join(__dirname, 'web', 'favicon-256.png')); }
+  catch { return null; }
+})();
+
+// Faded meander stripe (pre-baked 25% alpha) — served at /meander-faded.png
+// so the dark themes (Stars, Marble) get a calmer border. Papyrus keeps the
+// full-strength /meander.png.
+const MEANDER_FADED = (() => {
+  try { return readFileSync(join(__dirname, 'web', 'transpmeander-faded.png')); }
   catch { return null; }
 })();
 
@@ -340,6 +361,33 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'no-cache', 'content-length': buf.length });
       res.end(buf);
     }
+    else if (req.method === 'GET' && url.pathname === '/2.jpeg') {
+      // Hero screenshot on the welcome screen (read per-request, like /bg.jpg)
+      let buf;
+      try { buf = readFileSync(join(__dirname, 'web', '2.jpeg')); }
+      catch { return sendJson(res, 404, { error: 'no hero image' }); }
+      res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'no-cache', 'content-length': buf.length });
+      res.end(buf);
+    }
+    else if (req.method === 'GET' && url.pathname === '/meander.png') {
+      let buf;
+      try { buf = readFileSync(join(__dirname, 'web', 'transpmeander.png')); }
+      catch { return sendJson(res, 404, { error: 'no meander image' }); }
+      res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-cache', 'content-length': buf.length });
+      res.end(buf);
+    }
+    else if (req.method === 'GET' && url.pathname === '/meander-faded.png') {
+      if (!MEANDER_FADED) return sendJson(res, 404, { error: 'no faded meander' });
+      res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-cache', 'content-length': MEANDER_FADED.length });
+      res.end(MEANDER_FADED);
+    }
+    else if (req.method === 'GET' && url.pathname === '/cogito.jpeg') {
+      let buf;
+      try { buf = readFileSync(join(__dirname, 'web', 'Cogito,ergo sum.jpeg')); }
+      catch { return sendJson(res, 404, { error: 'no image' }); }
+      res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'no-cache', 'content-length': buf.length });
+      res.end(buf);
+    }
     else if (req.method === 'GET' && url.pathname === '/events') {
       res.writeHead(200, {
         'content-type': 'text/event-stream',
@@ -389,25 +437,6 @@ const server = http.createServer(async (req, res) => {
       } finally {
         pickInProgress = false;
       }
-    }
-    else if (req.method === 'GET' && url.pathname === '/api/sudo') {
-      sendJson(res, 200, { enabled: agent.allowSudo });
-    }
-    else if (req.method === 'POST' && url.pathname === '/api/sudo') {
-      const body = await readBody(req);
-      let enabled;
-      try { enabled = JSON.parse(body).enabled; }
-      catch { return sendJson(res, 400, { error: 'expected {"enabled": true|false}' }); }
-      if (typeof enabled !== 'boolean') return sendJson(res, 400, { error: 'expected {"enabled": true|false}' });
-      agent.allowSudo = enabled; // applies live — next exec call picks it up
-      config.tools = config.tools || {};
-      config.tools.sudo = enabled;
-      try {
-        writeFileSync(join(__dirname, 'config.json'), JSON.stringify(config, null, 2) + '\n', 'utf8');
-      } catch (err) {
-        return sendJson(res, 500, { error: 'applied for this run, but saving to config.json failed: ' + err.message });
-      }
-      sendJson(res, 200, { ok: true, enabled });
     }
     else if (req.method === 'GET' && url.pathname === '/state') {
       const model = await detectModel();
