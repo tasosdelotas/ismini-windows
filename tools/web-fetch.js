@@ -10,6 +10,36 @@ const net = globalThis.fetch;
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 const LIMIT = 20000;
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+
+export async function readResponseText(resp, maxBytes = MAX_RESPONSE_BYTES) {
+    const reader = resp.body?.getReader();
+    if (!reader) return { text: '', truncated: false };
+
+    const decoder = new TextDecoder();
+    let text = '';
+    let bytes = 0;
+    let truncated = false;
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const remaining = maxBytes - bytes;
+            if (value.byteLength > remaining) {
+                if (remaining > 0) text += decoder.decode(value.subarray(0, remaining), { stream: true });
+                truncated = true;
+                await reader.cancel();
+                break;
+            }
+            bytes += value.byteLength;
+            text += decoder.decode(value, { stream: true });
+        }
+        text += decoder.decode();
+    } finally {
+        reader.releaseLock();
+    }
+    return { text, truncated };
+}
 
 export function htmlToText(html) {
     if (!html) return '';
@@ -84,15 +114,16 @@ export function fetch(url) {
                redirect: 'follow',
                headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' },
     }).then(async (resp) => {
-        const html = await resp.text();
+        const { text: html, truncated } = await readResponseText(resp);
         if (!resp.ok) {
             return `HTTP ${resp.status}: page not available${resp.status === 403 ? ' (likely blocked by anti-bot — try a different source)' : ''}.`;
         }
         const plain = htmlToText(html);
+        const responseNote = truncated ? '\n... [response capped at 2 MB]' : '';
         if (looksLikeShell(html, plain)) {
             const hint = '[No readable content — page appears JS-rendered or bot-walled. Try a different source.]';
-            return hint + (plain ? '\n\n(raw text):\n' + truncate(plain) : '');
+            return hint + (plain ? '\n\n(raw text):\n' + truncate(plain) : '') + responseNote;
         }
-        return truncate(plain) || 'Page returned no readable text.';
+        return (truncate(plain) || 'Page returned no readable text.') + responseNote;
     }).catch((err) => `Fetch error: ${err.message}`);
 }

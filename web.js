@@ -216,13 +216,28 @@ function sendJson(res, code, obj) {
 
 function readBody(req, limit = 1e6) {
   return new Promise((resolve, reject) => {
-    let b = '';
+    const chunks = [];
+    let size = 0;
+    let tooLarge = false;
     req.on('data', (d) => {
-      b += d;
-      if (b.length > limit) { reject(new Error('body too large')); req.destroy(); }
+      if (tooLarge) return;
+      size += d.length;
+      if (size > limit) {
+        tooLarge = true;
+        const err = new Error('request body too large');
+        err.statusCode = 413;
+        reject(err);
+        req.resume();
+        return;
+      }
+      chunks.push(d);
     });
-    req.on('end', () => resolve(b));
-    req.on('error', reject);
+    req.on('end', () => {
+      if (!tooLarge) resolve(Buffer.concat(chunks).toString('utf8'));
+    });
+    req.on('error', (err) => {
+      if (!tooLarge) reject(err);
+    });
   });
 }
 
@@ -318,6 +333,14 @@ const server = http.createServer(async (req, res) => {
   catch { return sendJson(res, 400, { error: 'bad url' }); }
 
   try {
+    const origin = req.headers.origin;
+    const allowedOrigins = new Set([`http://${HOST}:${PORT}`, `http://localhost:${PORT}`]);
+    const isCrossSite = req.headers['sec-fetch-site'] === 'cross-site';
+    const isSafeRootNavigation = req.method === 'GET' && url.pathname === '/';
+    if ((origin && !allowedOrigins.has(origin) && !isSafeRootNavigation) ||
+        (isCrossSite && !isSafeRootNavigation)) {
+      return sendJson(res, 403, { error: 'cross-origin request blocked' });
+    }
     cancelShutdown(); // any request means a client is present — cancel pending shutdown
     if (req.method === 'GET' && url.pathname === '/') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
@@ -406,6 +429,7 @@ const server = http.createServer(async (req, res) => {
     else if (req.method === 'POST' && url.pathname === '/send') {
       if (busy) return sendJson(res, 409, { error: 'agent busy — wait for the current turn to finish' });
       const body = await readBody(req);
+      if (busy) return sendJson(res, 409, { error: 'agent busy — wait for the current turn to finish' });
       let text;
       try { text = JSON.parse(body).text; } catch { return sendJson(res, 400, { error: 'expected {"text": "..."}' }); }
       if (typeof text !== 'string' || !text.trim()) return sendJson(res, 400, { error: 'empty message' });
@@ -418,6 +442,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, { ok: true });
     }
     else if (req.method === 'POST' && url.pathname === '/new') {
+      if (busy) return sendJson(res, 409, { error: 'agent busy — wait for the current turn to finish' });
       // Archive current session and start fresh
       sessions.saveActive(agent.messages); // ensure current state is saved
       const newSession = sessions.archiveAndCreate();
@@ -495,7 +520,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 404, { error: 'not found' });
     }
   } catch (err) {
-    try { sendJson(res, 500, { error: err?.message || String(err) }); } catch { }
+    try { sendJson(res, err?.statusCode || 500, { error: err?.message || String(err) }); } catch { }
   }
 });
 

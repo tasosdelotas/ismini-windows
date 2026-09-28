@@ -292,15 +292,13 @@ async function toolEdit(args, workspace, contextDir) {
     const resolved = isAbsolute(p) ? p : join(homedir(), p);
     let content = readFileSync(resolved, 'utf8');
     if (!content.includes(args.oldText)) return `Error: oldText not found in file.`;
-    // Count occurrences before replacing (safety)
     const matches = content.split(args.oldText).length - 1;
-    if (matches > 5) {
-      return `Warning: oldText appears ${matches} times in the file. Replacing ALL occurrences. If this is unexpected, make oldText more specific.`;
-    }
-    // Replace ALL occurrences
     content = content.split(args.oldText).join(args.newText);
     writeFileSync(resolved, content, 'utf8');
-    return `Edited ${p} (${matches} occurrence(s) replaced)`;
+    const warning = matches > 5
+      ? ' Warning: oldText appeared more than 5 times; all matches were replaced. Use more specific text if this was unexpected.'
+      : '';
+    return `Edited ${p} (${matches} occurrence(s) replaced).${warning}`;
   } catch (err) { return `Error editing file: ${err.message}`; }
 }
 
@@ -648,23 +646,31 @@ export class Agent {
         const lineW = Math.min(cols - 6, 60);
         const line = '─'.repeat(lineW);
         process.stdout.write('\n   ' + this.ui._c('modelBorder', line) + '\n');
-        const response = await Promise.race([
-          this._callLM(truncated, {
-            stream: true,
-            signal: this._abort.signal,
-            onChunk: (chunk) => {
-              streamedContent += chunk;
-              process.stdout.write(chunk);
-            },
-          }),
-          new Promise((_, rej) => setTimeout(() => {
-            // Abort the in-flight request so it stops streaming and `busy`
-            // clears cleanly — otherwise a new turn can start while the old
-            // one is still streaming, and late chunks bleed into the new turn.
-            this._abort?.abort();
-            rej(new Error('Model response timeout (300s)'));
-          }, 300000))
-        ]);
+        let responseTimeout;
+        let response;
+        try {
+          response = await Promise.race([
+            this._callLM(truncated, {
+              stream: true,
+              signal: this._abort.signal,
+              onChunk: (chunk) => {
+                streamedContent += chunk;
+                process.stdout.write(chunk);
+              },
+            }),
+            new Promise((_, rej) => {
+              responseTimeout = setTimeout(() => {
+                // Abort the in-flight request so it stops streaming and `busy`
+                // clears cleanly — otherwise a new turn can start while the old
+                // one is still streaming, and late chunks bleed into the new turn.
+                this._abort?.abort();
+                rej(new Error('Model response timeout (300s)'));
+              }, 300000);
+            })
+          ]);
+        } finally {
+          clearTimeout(responseTimeout);
+        }
 
         // Print bottom border after streaming
         if (streamedContent.trim()) {

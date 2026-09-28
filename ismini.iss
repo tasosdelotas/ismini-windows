@@ -20,8 +20,8 @@ Source: "package.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "web.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "agent.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "sessions.js"; DestDir: "{app}"; Flags: ignoreversion
-Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "sessions.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
+Source: "stop-ismini.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "2.jpeg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ismini.png"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ismini.bat"; DestDir: "{app}"; Flags: ignoreversion
@@ -37,6 +37,14 @@ Source: "icons\*"; DestDir: "{app}\icons"; Flags: recursesubdirs ignoreversion
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
+
+[UninstallRun]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\stop-ismini.ps1"""; Flags: runhidden waituntilterminated; RunOnceId: "StopIsmini"
+
+[UninstallDelete]
+Type: files; Name: "{app}\sessions.json"
+Type: files; Name: "{app}\sessions.json.tmp"
+Type: files; Name: "{app}\sessions.json.corrupt-*"
 
 [Icons]
 Name: "{userdesktop}\Ismini Agent"; Filename: "{app}\ismini.bat"; IconFilename: "{app}\icons\ismini48.ico"

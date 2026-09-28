@@ -1,6 +1,6 @@
 // web-search.js — Search via DuckDuckGo HTML (POST method) + Local Page Extraction
 
-import { htmlToText } from './web-fetch.js';
+import { htmlToText, readResponseText } from './web-fetch.js';
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0';
 
@@ -74,11 +74,11 @@ async function fetchPageContent(url) {
                                      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
                                  },
         });
+        const { text: html, truncated } = await readResponseText(resp);
         if (!resp.ok) return null;
-        const html = await resp.text();
         const text = htmlToText(html);
         if (!text || !text.trim()) return null;
-        return text.trim().substring(0, 3000);
+        return text.trim().substring(0, 3000) + (truncated ? '\n... [response capped at 2 MB]' : '');
     } catch {
         return null;
     }
@@ -104,8 +104,8 @@ export async function search(query) {
                                  body: new URLSearchParams({ q: query, b: '' }).toString()
         });
 
+        const { text: html } = await readResponseText(resp);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const html = await resp.text();
 
         if (!html.trim() || html.includes('anomaly-modal') || html.includes('Check if you are a bot')) {
             throw new Error('DuckDuckGo bot detection triggered.');

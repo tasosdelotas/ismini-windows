@@ -8,7 +8,7 @@
 
 # ismini — your personal AI agent, 100% on your own PC
 
-ismini is a small, friendly AI assistant that runs entirely on your computer. It chats with you in your browser, and can read and write files, run commands, and search the web — all powered by a local AI model (LM Studio). No cloud, no accounts, no sign-ups. Your data never leaves your machine.
+ismini is a small, friendly AI assistant that runs on your computer. It chats with you in your browser, and can read and write files, run commands, and search the web — all powered by a local AI model (LM Studio). Chat history and configuration are stored locally. If you use web search or fetch a page, your search query or page request is sent to DuckDuckGo or that website. Browser speech recognition may also use the browser vendor's service, depending on your browser.
 
 ## What it can do
 
@@ -21,7 +21,6 @@ ismini is a small, friendly AI assistant that runs entirely on your computer. It
 - 🎙️ **Dictation** — click the mic and speak your message; speech-to-text via Web Speech API
 - 🔊 **Text-to-Speech (TTS)** — ismini reads its replies aloud; pick your preferred voice
 - 🎧 **Live Chat** — continuous voice conversation: speak, ismini listens, responds with voice, and immediately listens again
-- 🧠 **Memory** — ismini remembers facts across sessions (persistent memory file)
 - 📋 **Sessions** — switch between your current and up to 3 archived conversations
 - 🎨 **Three themes** — **Papyrus** (an ancient scroll), **Stars** (a twinkling night sky), or **Marble** (black marble) — pick one in the header and ismini remembers your choice
 - 🏛️ **Greek meander border** — a classic thunder-pattern frames the left and right edges of the interface
@@ -29,6 +28,7 @@ ismini is a small, friendly AI assistant that runs entirely on your computer. It
 ## What you need
 
 - **Windows 10/11** (x64)
+- **Node.js 18 or newer**, installed and available on `PATH` (not included in the installer)
 - **LM Studio** with a model loaded — download from [lmstudio.ai](https://lmstudio.ai/)
 - A **modern browser** (Edge recommended for the best TTS voices, Chrome also works)
 
@@ -75,10 +75,6 @@ Click the **Live** button to start a continuous voice conversation. ismini will:
 4. Immediately listen again
 
 The Live button shows: **red** (off), **green blinking** (active), **purple** (speaking). Click again to stop.
-
-### Memory
-
-ismini has a persistent memory file (`memory.json`) that stores facts and context across sessions. Ask it to remember something and it will save it. It will recall relevant memories in future conversations.
 
 ### Sessions
 

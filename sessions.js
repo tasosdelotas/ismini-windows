@@ -2,7 +2,7 @@
 // Stores up to 4 sessions in sessions.json. Each session has all messages
 // (user, assistant, tool calls) so the AI has full context on restore.
 
-import { readFileSync, writeFileSync, existsSync, renameSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
@@ -16,17 +16,31 @@ export class SessionStore {
   }
 
   _load() {
-    if (!existsSync(this.file)) return;
+    let raw;
     try {
-      this.data = JSON.parse(readFileSync(this.file, 'utf8'));
-      if (!Array.isArray(this.data.sessions)) this.data.sessions = [];
-      if (!this.data.sessions.every(s => s && typeof s.id === 'string' && Array.isArray(s.messages))) {
+      raw = readFileSync(this.file, 'utf8');
+    } catch (err) {
+      if (err.code === 'ENOENT') return;
+      throw err;
+    }
+    try {
+      const data = JSON.parse(raw);
+      if (!Array.isArray(data.sessions)) data.sessions = [];
+      if (!data.sessions.every(s => s && typeof s.id === 'string' && Array.isArray(s.messages))) {
         throw new Error('invalid session data');
       }
-      if (this.data.activeId && !this.data.sessions.some(s => s.id === this.data.activeId)) {
-        this.data.activeId = this.data.sessions[0]?.id || null;
+      if (data.activeId && !data.sessions.some(s => s.id === data.activeId)) {
+        data.activeId = data.sessions[0]?.id || null;
       }
-    } catch {
+      this.data = data;
+    } catch (err) {
+      const backup = `${this.file}.corrupt-${randomUUID()}`;
+      try {
+        renameSync(this.file, backup);
+      } catch (backupError) {
+        throw new Error(`Could not load sessions.json and could not preserve the original file: ${backupError.message}`, { cause: err });
+      }
+      console.error(`Could not load sessions.json (${err.message}); preserved the original as ${backup}. Starting with an empty session list.`);
       this.data = { activeId: null, sessions: [] };
     }
   }

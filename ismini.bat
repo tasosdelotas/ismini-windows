@@ -7,8 +7,19 @@ set "URL=http://127.0.0.1:8787/"
 REM Verify Node.js is available on PATH (LM Studio or standalone install)
 where node >NUL 2>&1
 if %errorlevel% neq 0 (
-  echo ERROR: Node.js not found on PATH.
-  echo Install Node.js from https://nodejs.org/ or ensure LM Studio is installed.
+  echo ERROR: Node.js 18 or newer was not found on PATH.
+  echo Install Node.js 18 or newer from https://nodejs.org/ and ensure it is on PATH.
+  pause
+  exit /b 1
+)
+for /f "tokens=1 delims=v." %%V in ('node --version 2^>NUL') do set "NODE_MAJOR=%%V"
+if not defined NODE_MAJOR (
+  echo ERROR: Could not determine the Node.js version.
+  pause
+  exit /b 1
+)
+if %NODE_MAJOR% LSS 18 (
+  echo ERROR: Node.js 18 or newer is required. Found version %NODE_MAJOR%.
   pause
   exit /b 1
 )

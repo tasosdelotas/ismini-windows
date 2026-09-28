@@ -6,11 +6,11 @@ set "DIR=%DIR:\/=%"
 set "APP=%USERPROFILE%\ismini"
 if /i not "%DIR%"=="%APP%" set "APP=%DIR%"
 
-REM 1) stop a running server (only node processes running THIS install's web.js)
-powershell -NoProfile -Command "$app='%APP%'; Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { $_.CommandLine -match 'web\.js' -and $_.CommandLine -match [regex]::Escape($app) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >NUL 2>&1
+REM 1) stop the server and any child processes for this install
+powershell -NoProfile -ExecutionPolicy Bypass -File "%DIR%stop-ismini.ps1" >NUL 2>&1
 
-REM 2) desktop launcher
-del /f /q "%USERPROFILE%\Desktop\ismini.bat" >NUL 2>&1
+REM 2) desktop and Start Menu shortcuts
+powershell -NoProfile -Command "$desktop=[Environment]::GetFolderPath('Desktop'); $programs=[Environment]::GetFolderPath('Programs'); Remove-Item -LiteralPath (Join-Path $desktop 'Ismini Agent.lnk') -Force -ErrorAction SilentlyContinue; Remove-Item -LiteralPath (Join-Path $programs 'Ismini') -Recurse -Force -ErrorAction SilentlyContinue" >NUL 2>&1
 
 REM 3) stray launcher log
 del /f /q "%TEMP%\ismini.log" >NUL 2>&1

@@ -25,12 +25,20 @@ All notable changes to ismini (Windows) are documented here.
 - **Pause button behavior** — fixed pause/redirect flow
 - **Blank area at bottom** — removed footer gradient that was painting over the theme background (present since v2)
 - **File & folder picker** — now works on Windows via PowerShell `System.Windows.Forms` (was Linux-only `zenity`/`kdialog`, broken on Windows)
-- **Launcher** — `ismini.bat` and `launch-hidden.vbs` now use the bundled `node.exe` (was PATH-only, failed on clean machines without a separate Node install)
+- **Launcher** — requires Node.js on `PATH`; Node.js is not bundled with the installer
 - **300s timeout** — now aborts the in-flight model stream (previously the request kept running in the background, and late output could bleed into the next turn)
 - **Non-streaming JSON response** — now displayed in the UI (previously invisible until transcript reload)
 - **STT / Live mode** — `no-speech` errors no longer stop microphone listening while Live mode is active
 - **Edit tool** — rejects empty `oldText` (previously could insert text between every character in a file)
 - **Uninstall** — `uninstall.bat` now only kills node processes belonging to this install (previously could terminate unrelated Node servers)
+- **Installer upgrades** — preserve an existing `config.json` and exclude private session history from the installer
+- **Uninstaller** — stop the app and child processes, remove shortcuts, and clean up session data
+- **Launcher** — require Node.js 18 or newer and report incompatible or missing runtimes
+- **Local web API** — reject cross-origin requests, prevent overlapping turns/new chats, and return HTTP 413 for oversized requests
+- **Web tools** — cap downloaded response bodies to 2 MB
+- **Session recovery** — preserve malformed session data in a backup instead of silently discarding it
+- **Agent** — clear completed model response timers and perform edit replacements even when more than five matches are found
+- **Privacy and prerequisites** — document Node.js, web-request, and browser speech-recognition requirements and data flows accurately
 
 ## v3.0.0 (2026-08)
 
