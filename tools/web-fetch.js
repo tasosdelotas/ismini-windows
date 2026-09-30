@@ -8,7 +8,7 @@
 
 const net = globalThis.fetch;
 
-const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 const LIMIT = 20000;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 

@@ -25,7 +25,7 @@ export class SessionStore {
     }
     try {
       const data = JSON.parse(raw);
-      if (!Array.isArray(data.sessions)) data.sessions = [];
+      if (!data || !Array.isArray(data.sessions)) throw new Error('invalid session data');
       if (!data.sessions.every(s => s && typeof s.id === 'string' && Array.isArray(s.messages))) {
         throw new Error('invalid session data');
       }

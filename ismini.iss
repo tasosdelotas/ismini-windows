@@ -1,5 +1,5 @@
 #define AppName "Ismini Agent"
-#define AppVersion "4.0.0"
+#define AppVersion "5.0.1"
 
 [Setup]
 AppName={#AppName}
@@ -20,6 +20,7 @@ Source: "package.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "web.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "agent.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "sessions.js"; DestDir: "{app}"; Flags: ignoreversion
+Source: "memory.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
 Source: "stop-ismini.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "2.jpeg"; DestDir: "{app}"; Flags: ignoreversion
@@ -45,6 +46,9 @@ Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile
 Type: files; Name: "{app}\sessions.json"
 Type: files; Name: "{app}\sessions.json.tmp"
 Type: files; Name: "{app}\sessions.json.corrupt-*"
+Type: files; Name: "{app}\memory.json"
+Type: files; Name: "{app}\memory.json.tmp"
+Type: files; Name: "{app}\memory.json.corrupt-*"
 
 [Icons]
 Name: "{userdesktop}\Ismini Agent"; Filename: "{app}\ismini.bat"; IconFilename: "{app}\icons\ismini48.ico"

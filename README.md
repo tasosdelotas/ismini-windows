@@ -34,7 +34,7 @@ ismini is a small, friendly AI assistant that runs on your computer. It chats wi
 
 ## Setup (1 minute)
 
-1. Download **ismini-installer-4.0.0.exe** from the [Releases page](https://github.com/tasosdelotas/ismini-windows/releases)
+1. Download the latest **ismini installer** from the [Releases page](https://github.com/tasosdelotas/ismini-windows/releases/latest)
 2. Run it and click through the installer
 3. An **ismini** icon appears on your desktop. Click it to start.
 
@@ -80,6 +80,10 @@ The Live button shows: **red** (off), **green blinking** (active), **purple** (s
 
 ismini keeps your current session plus up to 3 archived ones. Click **New chat** to archive the current and start fresh. Click **Sessions** to see the list and switch back to any archived conversation. Sessions are labeled by date and time.
 
+### Memory
+
+ismini can save stable, non-sensitive facts and preferences in a local `memory.json` file. Ask it to remember something; it can search those memories in later conversations and remove them when asked. Never store passwords, API keys, tokens, or other credentials. Memory and session data stay in the app folder and are excluded from the installer source files.
+
 ## Admin (elevated commands)
 
 By default, ismini runs commands as your **normal user**. If you need elevated privileges:
@@ -94,9 +98,13 @@ Note: even with admin, ismini still blocks destructive patterns (`format C:`, `d
 
 Use **Windows Settings → Apps → Ismini Agent → Uninstall**, or run `uninstall.bat` in the app folder. Removes everything including config files. Your LM Studio and your files are untouched.
 
+## Publish a release
+
+From the repository folder, double-click `Publish-to-GitHub.bat` to open an interactive publishing window, or run `powershell -NoProfile -ExecutionPolicy Bypass -File .\publish.ps1` in PowerShell. Publishing requires Git, GitHub CLI (`gh`) signed in, and Inno Setup 6; Node.js is required to run the installed app, not to build the installer. The script prompts for a higher version, builds `Output\ismini-installer-<version>.exe`, asks for confirmation and a commit message, then pushes the commit and tag and uploads the installer to a GitHub Release. The app version in `package.json` and `ismini.iss` must match. Keep `sessions.json` and `memory.json` private; do not add them to a release.
+
 ## How it works (the short version)
 
-- One small web server (`web.js`) + one agent loop (`agent.js`) + a browser chat page
+- One small web server (`web.js`) + one agent loop (`agent.js`) + a browser chat page, with local session and long-term memory stores
 - Talks to LM Studio's local API — whatever model you have loaded, it uses
 - Zero npm packages
 - All visuals are local files (papyrus, starfield, marble, meander border, the Cinzel font) — no CDNs, no internet needed for the UI
@@ -107,4 +115,4 @@ Use **Windows Settings → Apps → Ismini Agent → Uninstall**, or run `uninst
 
 Developed by **Tasos Delotas** — [tasosdelotas@gmail.com](mailto:tasosdelotas@gmail.com)
 
-Licensed under the [MIT License](LICENSE).
+Licensed under the [MIT License](LICENSE.txt).

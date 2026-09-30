@@ -6,3 +6,8 @@ gh-*.js
 gh-out.txt
 test-out.txt
 sessions.json
+memory.json
+sessions.json.tmp
+sessions.json.corrupt-*
+memory.json.tmp
+memory.json.corrupt-*

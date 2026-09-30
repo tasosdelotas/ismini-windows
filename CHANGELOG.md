@@ -2,6 +2,27 @@
 
 All notable changes to ismini (Windows) are documented here.
 
+## v5.0.1
+
+### Added
+- 🧠 **Local long-term memory** — `memory.json` store with `memory_add`, `memory_search`, and `memory_delete` tools, enabled by default.
+- Memory guidance discourages storing passwords, API keys, tokens, and other credentials.
+- Publishing builds the versioned Windows installer and uploads it with the GitHub Release.
+
+### Changed
+- Session, transcript, and status APIs expose only user-visible messages; internal loop-control prompts are excluded from displayed and saved chat history.
+- Malformed session files are preserved as `.corrupt-*` backups instead of being replaced silently.
+- Malformed memory files are backed up and reported before the app starts with empty memory.
+
+### Fixed
+- Bundled `memory.js` in the Inno Setup installer and remove local memory data/backups on uninstall.
+- Launcher server checks use Node.js `fetch` instead of requiring `curl`, and report a failed startup instead of opening the browser as if the server were ready.
+- Enforced the configured tool allowlist when executing tool calls and kept assistant/tool IDs paired when a provider omits a call ID.
+- Prevented system-prompt copies from accumulating in the in-memory conversation after each user turn.
+- Transcript resync now retains the server's busy state; Live mode now selects the rendered assistant bubble for TTS.
+- Ignore temporary and corrupt session/memory files so personal data is not swept into a publish commit.
+- Updated web-fetch's user-agent to identify the Windows build consistently with web search.
+
 ## v4.0.0
 
 ### Added

@@ -24,8 +24,8 @@ if %NODE_MAJOR% LSS 18 (
   exit /b 1
 )
 
-REM Already running? Just open the browser.
-curl -s -m 1 "%URL%" -o NUL 2>&1
+REM Use Node's built-in fetch so no extra HTTP utility is required.
+node -e "fetch('%URL%',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >NUL 2>&1
 if %errorlevel% equ 0 (
   start "" "%URL%"
   exit /b 0
@@ -40,9 +40,15 @@ set /a count=0
 timeout /t 1 /nobreak >NUL
 set /a count+=1
 if %count% geq 10 goto openbrowser
-curl -s -m 1 "%URL%" -o NUL 2>&1
+node -e "fetch('%URL%',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >NUL 2>&1
 if %errorlevel% equ 0 goto openbrowser
 goto waitloop
 
 :openbrowser
+node -e "fetch('%URL%',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >NUL 2>&1
+if %errorlevel% neq 0 (
+  echo ERROR: ismini did not start. Check "%TEMP%\ismini.log" for details.
+  pause
+  exit /b 1
+)
 start "" "%URL%"
