@@ -260,7 +260,7 @@ async function toolRead(args, workspace, contextDir) {
     const resolved = isAbsolute(p) ? p : join(homedir(), p);
     const ext = extname(resolved).toLowerCase();
     if (['.jpg','.jpeg','.png','.gif','.webp','.bmp','.svg','.tiff','.ico'].includes(ext)) {
-      return 'I cannot view image files. I do not have vision capabilities. Please describe the image to me instead.';
+      return 'To analyze this image, attach it with the image button in the chat. The current model must support image input.';
     }
     const content = readFileSync(resolved, 'utf8');
     const lines = content.split('\n');
@@ -546,6 +546,9 @@ function parseToolCalls(message) {
 
 // ── Agent class ─────────────────────────────────────────────────────
 
+const LEGACY_VISION_DISCLAIMER = 'You lack vision and cannot process image files (.jpg, .png, .webp, .svg, etc.); politely ask for a text description instead and never call read on image files.';
+const LEGACY_VISION_CAVEAT = 'When the user attaches an image, analyze its visible content when the current model supports image input. If the model cannot process the image, say so plainly and suggest a vision-capable model; never pretend to have inspected it.';
+
 export class Agent {
   constructor(opts) {
     this.baseUrl = opts.baseUrl;
@@ -565,6 +568,11 @@ export class Agent {
 
     // Build full system prompt
     let basePrompt = this.systemPrompt || 'You are a helpful assistant.';
+    basePrompt = basePrompt
+      .replace(LEGACY_VISION_DISCLAIMER, '')
+      .replace(LEGACY_VISION_CAVEAT, '')
+      .trimEnd();
+    this.supportsVision = null;
 
     // Add behavior rule to prevent repetitive questioning
     basePrompt += '\n\n# Communication Rules:\n'
@@ -647,7 +655,7 @@ export class Agent {
   }
 
   async run(userMessage) {
-    this._push('user', userMessage);
+    this._push('user', { role: 'user', content: userMessage });
     this._abort = new AbortController();
 
     const maxTurns = this.maxTurns || 20;
@@ -997,7 +1005,9 @@ export class Agent {
         }
         return {
           role: m.role,
-          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? ''),
+          content: typeof m.content === 'string' || Array.isArray(m.content)
+            ? m.content
+            : JSON.stringify(m.content ?? ''),
           ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
           ...(m.name ? { name: m.name } : {})
         };
@@ -1007,6 +1017,18 @@ export class Agent {
     // Fold mid-conversation system notes into the leading system prompt
     if (_systemNotes.length) {
       apiMessages[0] = { role: 'system', content: this._fullSystemPrompt + '\n\n' + _systemNotes.join('\n') };
+    }
+
+    const hasImage = messages.some(message =>
+      message.role === 'user' &&
+      Array.isArray(message.content) &&
+      message.content.some(part => part?.type === 'image_url' && typeof part.image_url?.url === 'string')
+    );
+    if (hasImage) {
+      const visionGuidance = this.supportsVision === false
+        ? '\n\nIMAGE INPUT STATUS: The loaded model does not support image input. Tell the user this model cannot analyze the attached image and recommend loading a vision-language model. Do not guess what the image contains.'
+        : '\n\nIMAGE INPUT STATUS: The user message includes the image content. Inspect it and answer about what is actually visible. Do not claim that you lack vision or ask the user to attach the image again. If the image itself is unreadable, explain that specific problem.';
+      apiMessages[0].content += visionGuidance;
     }
 
     const url = `${this.baseUrl}/chat/completions`;

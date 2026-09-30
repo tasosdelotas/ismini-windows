@@ -8,6 +8,8 @@
 
 # ismini — your personal AI agent, 100% on your own PC
 
+**Current version: v6.0.4**
+
 ismini is a small, friendly AI assistant that runs on your computer. It chats with you in your browser, and can read and write files, run commands, and search the web — all powered by a local AI model (LM Studio). Chat history and configuration are stored locally. If you use web search or fetch a page, your search query or page request is sent to DuckDuckGo or that website. Browser speech recognition may also use the browser vendor's service, depending on your browser.
 
 ## What it can do
@@ -21,6 +23,7 @@ ismini is a small, friendly AI assistant that runs on your computer. It chats wi
 - 🎙️ **Dictation** — click the mic and speak your message; speech-to-text via Web Speech API
 - 🔊 **Text-to-Speech (TTS)** — ismini reads its replies aloud; pick your preferred voice
 - 🎧 **Live Chat** — continuous voice conversation: speak, ismini listens, responds with voice, and immediately listens again
+- 🖼️ **Image understanding** — attach JPEG, PNG, WebP, or GIF images for analysis with a vision-capable LM Studio model
 - 📋 **Sessions** — switch between your current and up to 3 archived conversations
 - 🎨 **Three themes** — **Papyrus** (an ancient scroll), **Stars** (a twinkling night sky), or **Marble** (black marble) — pick one in the header and ismini remembers your choice
 - 🏛️ **Greek meander border** — a classic thunder-pattern frames the left and right edges of the interface
@@ -42,7 +45,9 @@ ismini is a small, friendly AI assistant that runs on your computer. It chats wi
 
 1. Make sure **LM Studio is open** with a model loaded (any model works — ismini detects it automatically)
 2. Click the **ismini desktop icon**
-3. Your browser opens at `http://127.0.0.1:8787` — just start chatting
+3. Your browser opens at `http://127.0.0.1:8787` — just start chatting; the running Ismini version appears at the bottom-right of the page.
+
+To update an existing installation, run the newer installer in the same folder. The installer stops the existing Ismini server before replacing its files; if it cannot stop the server, it will ask you to close Ismini and retry.
 
 **Useful buttons:**
 
@@ -83,6 +88,10 @@ ismini keeps your current session plus up to 3 archived ones. Click **New chat**
 ### Memory
 
 ismini can save stable, non-sensitive facts and preferences in a local `memory.json` file. Ask it to remember something; it can search those memories in later conversations and remove them when asked. Never store passwords, API keys, tokens, or other credentials. Memory and session data stay in the app folder and are excluded from the installer source files.
+
+### Image understanding
+
+Use the **🖼️** button beside the message box to attach a JPEG, PNG, WebP, or GIF image (up to 4 MiB), then send it with your question. Image understanding requires a vision-capable model loaded in LM Studio. The image is sent to your configured model endpoint (local by default) and is retained in the local session history.
 
 ## Admin (elevated commands)
 

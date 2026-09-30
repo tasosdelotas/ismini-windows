@@ -2,6 +2,37 @@
 
 All notable changes to ismini (Windows) are documented here.
 
+## v6.0.4
+
+### Fixed
+- Installer now uses a multi-resolution Ismini icon for clearer display at Windows shell and setup sizes.
+
+## v6.0.3
+
+### Added
+- Display the running app version at the bottom-right of the web interface.
+
+## v6.0.2
+
+### Fixed
+- Installer now stops the existing Ismini server before replacing app files, preventing an older running process from continuing to serve the browser.
+- Installer reports a clear error instead of continuing if the existing server cannot be stopped.
+
+## v6.0.1
+
+### Fixed
+- Prevented supported vision models from refusing image attachments because of ambiguous capability instructions.
+- Detects LM Studio vision-language model metadata and gives the model image-specific guidance.
+
+## v6.0.0
+
+### Added
+- Attach JPEG, PNG, WebP, or GIF images in chat for analysis by a vision-capable LM Studio model.
+
+### Fixed
+- Removed the stale system-prompt disclaimer that claimed images could not be processed, including from preserved legacy configs.
+
+
 ## v5.0.1
 
 ### Added
