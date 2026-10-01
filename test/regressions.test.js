@@ -255,7 +255,7 @@ test('valid memory data still persists, searches, and deletes', () => {
 
 test('Inno Setup includes runtime dependencies and removes personal data on uninstall', () => {
   const iss = readFileSync(join(repo, 'ismini.iss'), 'utf8');
-  assert.match(iss, /^#define AppVersion "6\.0\.4"$/m);
+  assert.match(iss, /^#define AppVersion "7\.0\.0"$/m);
   assert.match(iss, /^SetupIconFile=icons\\ismini-installer\.ico$/m);
   assert.match(iss, /Source: "memory\.js"; DestDir: "\{app\}"/);
   for (const file of ['agent.js', 'sessions.js', 'memory.js', 'image-input.js', 'web.js', 'package.json']) {
@@ -274,7 +274,7 @@ test('Inno Setup includes runtime dependencies and removes personal data on unin
 test('release metadata versions stay aligned', () => {
   const packageJson = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'));
   const iss = readFileSync(join(repo, 'ismini.iss'), 'utf8');
-  assert.equal(packageJson.version, '6.0.4');
+  assert.equal(packageJson.version, '7.0.0');
   assert.match(iss, new RegExp(`#define AppVersion "${packageJson.version}"`));
   assert.match(readFileSync(join(repo, 'README.md'), 'utf8'), /Releases\/latest/i);
   assert.ok(existsSync(join(repo, 'LICENSE.txt')));
@@ -315,6 +315,24 @@ test('browser inline scripts parse, and live/resync use the actual rendered stat
   assert.match(readFileSync(join(repo, 'web.js'), 'utf8'), /\.replaceAll\('__ISMINI_VERSION__', APP_VERSION\)/);
   assert.match(html, /image_url: \{ url: image\.dataUrl \}/);
   assert.match(readFileSync(join(repo, 'web.js'), 'utf8'), /validateImageAttachment\(payload\?\.image\)/);
+});
+
+test('Live Chat owns response TTS without cancelling and replaying the generic utterance', () => {
+  const html = readFileSync(join(repo, 'web', 'index.html'), 'utf8');
+  const helper = html.match(/function shouldUseStandaloneTts\(\) \{[\s\S]*?\n  \}/)?.[0];
+  assert.ok(helper, 'standalone TTS ownership helper exists');
+
+  const context = { window: { __isminiLiveOnDone: () => {} } };
+  vm.runInNewContext(`${helper}\nthis.result = shouldUseStandaloneTts();`, context);
+  assert.equal(context.result, false, 'Live Chat suppresses generic completion speech');
+
+  context.window.__isminiLiveOnDone = null;
+  vm.runInNewContext(`${helper}\nthis.result = shouldUseStandaloneTts();`, context);
+  assert.equal(context.result, true, 'regular response TTS remains enabled');
+
+  assert.match(html, /if \(text && shouldUseStandaloneTts\(\)\) speak\(text\);/);
+  assert.match(html, /if \(!streaming && !restoringTranscript && shouldUseStandaloneTts\(\)\) speak\(text\);/);
+  assert.match(html, /const startTTS = \(\) => \{/);
 });
 
 function readdir(dir) { return readdirSync(dir); }

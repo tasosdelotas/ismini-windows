@@ -2,6 +2,11 @@
 
 All notable changes to ismini (Windows) are documented here.
 
+## v7.0.0
+
+### Fixed
+- Prevented Live Chat from speaking each response twice; generic TTS no longer cancels and restarts the dedicated Live Chat utterance.
+
 ## v6.0.4
 
 ### Fixed

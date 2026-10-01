@@ -1,5 +1,5 @@
 #define AppName "Ismini Agent"
-#define AppVersion "6.0.4"
+#define AppVersion "7.0.0"
 
 [Setup]
 AppName={#AppName}

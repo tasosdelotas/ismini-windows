@@ -8,7 +8,7 @@
 
 # ismini — your personal AI agent, 100% on your own PC
 
-**Current version: v6.0.4**
+**Current version: v7.0.0**
 
 ismini is a small, friendly AI assistant that runs on your computer. It chats with you in your browser, and can read and write files, run commands, and search the web — all powered by a local AI model (LM Studio). Chat history and configuration are stored locally. If you use web search or fetch a page, your search query or page request is sent to DuckDuckGo or that website. Browser speech recognition may also use the browser vendor's service, depending on your browser.
 

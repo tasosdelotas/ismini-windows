@@ -1626,7 +1626,7 @@
   closeLive = function () {
     const text = liveText;
     _origCloseLive();
-    if (text) speak(text);
+    if (text && shouldUseStandaloneTts()) speak(text);
   };
 
   // Also speak non-streaming model messages (SSE "model" event)
@@ -1634,7 +1634,7 @@
   const _origAddModel = addModel;
   addModel = function (text, streaming) {
     const el = _origAddModel(text, streaming);
-    if (!streaming && !restoringTranscript) speak(text);
+    if (!streaming && !restoringTranscript && shouldUseStandaloneTts()) speak(text);
     return el;
   };
 
@@ -1728,6 +1728,9 @@
   // Override speak() to use selected voice
   function cancelSpeech() {
     if ("speechSynthesis" in window) speechSynthesis.cancel();
+  }
+  function shouldUseStandaloneTts() {
+    return typeof window.__isminiLiveOnDone !== "function";
   }
   speak = function (text) {
     if (!ttsEnabled || !("speechSynthesis" in window)) return;
